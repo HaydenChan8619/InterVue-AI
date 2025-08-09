@@ -1,1 +1,1 @@
-# interview-prepper
+This is the codebase for the interview prepper - an AI Tool to help users prepare for their interviews.
