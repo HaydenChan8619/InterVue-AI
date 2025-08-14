@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     const transcriptionFormData = new FormData();
     transcriptionFormData.append('file', audioFile);
-    transcriptionFormData.append('model', 'whisper-1');
+    transcriptionFormData.append('model', 'gpt-4o-mini-audio-preview');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
