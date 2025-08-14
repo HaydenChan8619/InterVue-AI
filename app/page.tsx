@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Briefcase, FileText, ArrowRight, Upload, X } from 'lucide-react';
+import { extractPdfText } from '@/lib/extractPdfText';
 
 export default function Home() {
   const [jobDescription, setJobDescription] = useState('');
@@ -16,28 +17,11 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setResumeFile(file);
-
-    // Extract text from file
-    try {
-      let text = '';
-      if (file.type === 'text/plain') {
-        text = await file.text();
-      } else if (file.type === 'application/pdf') {
-        // For PDF files, we'll need to handle this on the server side
-        // For now, we'll ask the user to copy-paste or use a text file
-        text = `PDF file uploaded: ${file.name}. Please ensure your resume content is clearly readable.`;
-      } else {
-        text = await file.text();
-      }
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const text = await extractPdfText(file);
       setResumeText(text);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      setResumeText(`File uploaded: ${file.name}`);
     }
   };
 
