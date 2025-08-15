@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Home, Download, Star, TrendingUp, TrendingDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface QuestionResult {
   question: string;
@@ -85,117 +86,175 @@ export default function ResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto pt-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Interview Results</h1>
-          <p className="text-xl text-gray-600">Here's how you performed in your practice interview</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">     
+      <div className="max-w-6xl mx-auto pt-32 pb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            type: "tween",
+            ease: "easeOut",
+            duration: 0.8 
+          }}
+          className="text-center mb-12"
+        >
+          <h1 className="text-4xl font-bold text-indigo-900 mb-3">Interview Results</h1>
+          <p className="text-xl text-slate-700">Here's how you performed in your practice interview</p>
+        </motion.div>
 
         {/* Overall Grade */}
-        <Card className="mb-8 bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-8 text-center">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Star className="h-8 w-8 text-yellow-500" />
-              <span className="text-2xl font-semibold">Overall Grade</span>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            type: "tween",
+            ease: "easeOut",
+            duration: 0.8,
+            delay: 0.1
+          }}
+          className="mb-10"
+        >
+          <div className="bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
+            <div className="p-8 text-center">
+              <div className="flex items-center justify-center gap-3 mb-5">
+                <span className="text-2xl font-bold text-indigo-900">Overall Grade</span>
+              </div>
+              <div className={`${getGradeColor(overallGrade)} text-5xl font-bold rounded-full px-8 py-4 inline-block`}>
+                {overallGrade}
+              </div>
             </div>
-            <Badge className={`text-4xl font-bold px-6 py-2 ${getGradeColor(overallGrade)}`}>
-              {overallGrade}
-            </Badge>
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
 
         {/* Individual Question Results */}
-        <div className="space-y-6 mb-8">
+        <div className="space-y-8 mb-10">
           {results.map((result, index) => (
-            <Card key={index} className="bg-white/80 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold mb-2">
-                      Question {index + 1}
-                    </CardTitle>
-                    <CardDescription className="text-base text-gray-700">
-                      {result.question}
-                    </CardDescription>
-                  </div>
-                  <Badge className={`ml-4 text-xl font-bold px-4 py-1 ${getGradeColor(result.grade)}`}>
-                    {result.grade}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Your Response Summary:</h4>
-                    <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">
-                      {result.summary}
-                    </p>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ 
+                type: "tween",
+                ease: "easeOut",
+                duration: 0.8,
+                delay: 0.2 + (index * 0.1)
+              }}
+            >
+              <div className="bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
+                <div className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-indigo-900 mb-2">
+                        Question {index + 1}
+                      </h2>
+                      <p className="text-slate-700">
+                        {result.question}
+                      </p>
+                    </div>
+                    <div className={`${getGradeColor(result.grade)} text-xl font-bold rounded-full px-5 py-2 min-w-[70px] text-center`}>
+                      {result.grade}
+                    </div>
                   </div>
                   
-                  <Separator />
-                  
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-green-800 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" />
-                        Strengths
-                      </h4>
-                      <ul className="space-y-1">
-                        {result.pros.map((pro, proIndex) => (
-                          <li key={proIndex} className="text-sm text-green-700 flex items-start gap-2">
-                            <span className="text-green-500 mt-1">•</span>
-                            {pro}
-                          </li>
-                        ))}
-                      </ul>
+                  <div className="space-y-6 pt-4 border-t border-indigo-100">
+                    <div>
+                      <h3 className="font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                        <span className="bg-indigo-100 p-1 rounded-lg">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </span>
+                        Your Response Summary
+                      </h3>
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <p className="text-slate-700">
+                          {result.summary}
+                        </p>
+                      </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-orange-800 flex items-center gap-2">
-                        <TrendingDown className="h-4 w-4" />
-                        Areas for Improvement
-                      </h4>
-                      <ul className="space-y-1">
-                        {result.cons.map((con, conIndex) => (
-                          <li key={conIndex} className="text-sm text-orange-700 flex items-start gap-2">
-                            <span className="text-orange-500 mt-1">•</span>
-                            {con}
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+                        <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                          <TrendingUp className="h-5 w-5 text-green-600" />
+                          Strengths
+                        </h3>
+                        <ul className="space-y-2">
+                          {result.pros.map((pro, proIndex) => (
+                            <li key={proIndex} className="text-slate-700 flex items-start gap-2">
+                              <div className="bg-green-100 p-1 rounded-full mt-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                              {pro}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5">
+                        <h3 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                          <TrendingDown className="h-5 w-5 text-amber-600" />
+                          Areas for Improvement
+                        </h3>
+                        <ul className="space-y-2">
+                          {result.cons.map((con, conIndex) => (
+                            <li key={conIndex} className="text-slate-700 flex items-start gap-2">
+                              <div className="bg-amber-100 p-1 rounded-full mt-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </div>
+                              {con}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Actions */}
-        <Card className="bg-white/60 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                onClick={() => router.push('/')}
-                variant="outline"
-                size="lg"
-                className="flex items-center gap-2"
-              >
-                <Home className="h-4 w-4" />
-                Practice Again
-              </Button>
-              <Button
-                onClick={() => window.print()}
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Save Results
-              </Button>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            type: "tween",
+            ease: "easeOut",
+            duration: 0.8,
+            delay: 0.5
+          }}
+        >
+          <div className="bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
+            <div className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center justify-center gap-2 bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-medium py-3 px-6 rounded-xl transition-all"
+                >
+                  <Home className="h-5 w-5" />
+                  <span>Practice Again</span>
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all"
+                  onClick={() => window.print()}
+                >
+                  <Download className="h-5 w-5" />
+                  <span>Save Results</span>
+                </motion.button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

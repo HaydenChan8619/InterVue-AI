@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import InterviewQuestion from '@/components/InterviewQuestion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { motion } from 'framer-motion';
 
 export default function InterviewPage() {
   const [questions, setQuestions] = useState<string[]>([]);
@@ -52,19 +53,36 @@ export default function InterviewPage() {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4"
+    >
       <div className="max-w-4xl mx-auto pt-8">
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-2xl font-bold text-gray-900">Interview Practice</h1>
-              <span className="text-sm font-medium text-gray-600">
-                Question {currentQuestion + 1} of {questions.length}
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </CardContent>
-        </Card>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+        >
+          <Card className="mb-6 shadow-lg border border-indigo-100 mt-6">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm font-medium text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full">
+                  Question {currentQuestion + 1} of {questions.length}
+                </span>
+              </div>
+              <div className="w-full bg-indigo-100 rounded-full h-2.5">
+                <motion.div 
+                  className="bg-indigo-600 h-2.5 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                ></motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {questions.length > 0 && (
           <InterviewQuestion
@@ -74,6 +92,6 @@ export default function InterviewPage() {
           />
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

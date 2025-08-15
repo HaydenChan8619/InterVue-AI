@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, FileText, ArrowRight, Upload, X } from 'lucide-react';
 import { extractPdfText } from '@/lib/extractPdfText';
-import { motion} from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export default function BackgroundInfoPage() {
   const [jobDescription, setJobDescription] = useState('');
@@ -92,7 +92,7 @@ export default function BackgroundInfoPage() {
               delay: 0.1
             }}
           >
-            <div className="bg-gradient-to-b from-indigo-50 to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
+            <div className="bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-indigo-100 p-2 rounded-lg">
@@ -166,7 +166,7 @@ export default function BackgroundInfoPage() {
                       animate={{ opacity: 1 }}
                       className="mt-4"
                     >
-                      <h3 className="text-sm font-medium text-slate-700 mb-3 text-green-500">
+                      <h3 className="text-sm font-medium text-green-600">
                         Resume Uploaded!
                       </h3>
                     </motion.div>
@@ -187,7 +187,7 @@ export default function BackgroundInfoPage() {
               delay: 0.2
             }}
           >
-            <div className="bg-gradient-to-b from-indigo-50 to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
+            <div className="bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
               <div className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="bg-indigo-100 p-2 rounded-lg">
@@ -223,7 +223,7 @@ export default function BackgroundInfoPage() {
             delay: 0.3
           }}
         >
-          <div className="bg-gradient-to-br from-white to-indigo-50 rounded-2xl shadow-lg border border-indigo-100 backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-white to-white rounded-2xl shadow-lg border border-indigo-100 backdrop-blur-sm">
             <div className="p-8">
               <div className="text-center">
                 <h3 className="text-xl font-bold text-indigo-600 mb-3">Ready to begin?</h3>
