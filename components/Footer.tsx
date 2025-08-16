@@ -2,7 +2,8 @@ const Footer = () => {
   return (
     <footer className="bg-slate-900 text-white py-12 px-4">
       <div className="container mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        {/*<div className="grid grid-cols-1 md:grid-cols-4 gap-8">*/}
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
           <div>
             <div className="flex items-center space-x-2 mb-6">
               <div className="bg-indigo-600 text-white p-2 rounded-lg">
@@ -17,7 +18,7 @@ const Footer = () => {
             </p>
           </div>
           
-          <div>
+          {/*<div>
             <h4 className="text-lg font-bold mb-6">Product</h4>
             <ul className="space-y-3 text-slate-400">
               <li><a href="#" className="hover:text-white">Features</a></li>
@@ -45,10 +46,10 @@ const Footer = () => {
               <li><a href="#" className="hover:text-white">Cookie Policy</a></li>
               <li><a href="#" className="hover:text-white">Security</a></li>
             </ul>
-          </div>
+          </div>*/}
         </div>
         
-        <div className="border-t border-slate-800 mt-12 pt-8 text-center text-slate-500">
+        <div className="border-t border-slate-800 mt-12 pt-8 text-left text-slate-500">
           <p>© {new Date().getFullYear()} InterVue AI. All rights reserved.</p>
         </div>
       </div>
