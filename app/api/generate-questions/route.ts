@@ -49,7 +49,7 @@ function extractTextFromResponse(data: OpenAIResponse): string {
   return strings.join('\n');
 }
 
-export async function POST(request: NextRequest) {
+/*export async function POST(request: NextRequest) {
   try {
     const { jobDescription, resume } = await request.json();
 
@@ -84,9 +84,14 @@ Ensure the questions are concise, maintain the word count between 20 - 30.`;
         text: { verbosity: 'low' },
         max_output_tokens: 5000
       }),
-    });
+    });*/
 
-    const data = await response.json();
+    export async function POST(request: NextRequest) {
+      console.log("=== TEST POST handler hit ===");
+      return NextResponse.json({ message: "POST works!" }, { status: 200 });
+    }
+
+    /*const data = await response.json();
     console.log('API raw result:', data);
 
     const text = extractTextFromResponse(data).trim();
@@ -130,7 +135,6 @@ Ensure the questions are concise, maintain the word count between 20 - 30.`;
       return NextResponse.json({ error: 'Model returned fewer than 5 questions', raw: questions }, { status: 500 });
     }
 
-    //return NextResponse.json({ questions });
     return new NextResponse(JSON.stringify({ questions }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -139,4 +143,4 @@ Ensure the questions are concise, maintain the word count between 20 - 30.`;
     console.error('Error generating questions:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
-}
+}*/

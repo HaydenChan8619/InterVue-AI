@@ -125,7 +125,7 @@ export default function BackgroundInfoPage() {
                         Click to upload your resume
                       </p>
                       <p className="text-xs text-slate-500">
-                        Supports .txt, .pdf, .doc, .docx files
+                        Supports .pdf files
                       </p>
                     </div>
                   </div>
