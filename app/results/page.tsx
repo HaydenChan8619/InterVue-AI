@@ -63,6 +63,12 @@ export default function ResultsPage() {
     analyzeResponses();
   }, [router]);
 
+  const handleStartSession = () => 
+  {
+      // Eventually need to implement a google auth check here
+      router.push('/backgroundinfo');
+  }
+
   const getGradeColor = (grade: string) => {
     switch (grade.toLowerCase()) {
       case 'a': return 'bg-green-100 text-green-800 border-green-200';
@@ -237,6 +243,7 @@ export default function ResultsPage() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="flex items-center justify-center gap-2 bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-medium py-3 px-6 rounded-xl transition-all"
+                  onClick={handleStartSession}
                 >
                   <Home className="h-5 w-5" />
                   <span>Practice Again</span>
