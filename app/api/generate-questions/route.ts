@@ -130,7 +130,11 @@ Ensure the questions are concise, maintain the word count between 20 - 30.`;
       return NextResponse.json({ error: 'Model returned fewer than 5 questions', raw: questions }, { status: 500 });
     }
 
-    return NextResponse.json({ questions });
+    //return NextResponse.json({ questions });
+    return new NextResponse(JSON.stringify({ questions }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error generating questions:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
