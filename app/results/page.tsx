@@ -104,7 +104,7 @@ export default function ResultsPage() {
           }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl font-bold text-indigo-900 mb-3">Interview Results</h1>
+          <h1 className="text-4xl font-bold text-indigo-600 mb-3">Interview Results</h1>
           <p className="text-xl text-slate-700">Here's how you performed in your practice interview</p>
         </motion.div>
 
@@ -123,7 +123,7 @@ export default function ResultsPage() {
           <div className="bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
             <div className="p-8 text-center">
               <div className="flex items-center justify-center gap-3 mb-5">
-                <span className="text-2xl font-bold text-indigo-900">Overall Grade</span>
+                <span className="text-2xl font-bold text-indigo-600">Overall Grade</span>
               </div>
               <div className={`${getGradeColor(overallGrade)} text-5xl font-bold rounded-full px-8 py-4 inline-block`}>
                 {overallGrade}
@@ -150,7 +150,7 @@ export default function ResultsPage() {
                 <div className="p-6">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
                     <div className="flex-1">
-                      <h2 className="text-xl font-bold text-indigo-900 mb-2">
+                      <h2 className="text-xl font-bold text-indigo-600 mb-2">
                         Question {index + 1}
                       </h2>
                       <p className="text-slate-700">
@@ -164,7 +164,7 @@ export default function ResultsPage() {
                   
                   <div className="space-y-6 pt-4 border-t border-indigo-100">
                     <div>
-                      <h3 className="font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                      <h3 className="font-semibold text-indigo-600 mb-3 flex items-center gap-2">
                         <span className="bg-indigo-100 p-1 rounded-lg">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

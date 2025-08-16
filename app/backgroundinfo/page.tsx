@@ -11,6 +11,7 @@ export default function BackgroundInfoPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [numQuestions, setNumQuestions] = useState(3);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -39,12 +40,13 @@ export default function BackgroundInfoPage() {
       // Store the job description and resume in sessionStorage for the interview flow
       sessionStorage.setItem('jobDescription', jobDescription);
       sessionStorage.setItem('resume', resumeText);
+      sessionStorage.setItem('numQuestions', String(numQuestions));
       
       // Generate questions based on job description and resume
       const response = await fetch('/api/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobDescription, resume: resumeText })
+        body: JSON.stringify({ jobDescription, resume: resumeText, numQuestions })
       });
       
       if (!response.ok) throw new Error('Failed to generate questions');
@@ -211,6 +213,42 @@ export default function BackgroundInfoPage() {
             </div>
           </motion.div>
         </div>
+
+        {/* Number of Questions Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            type: "tween",
+            ease: "easeOut",
+            duration: 0.8,
+            delay: 0.25
+          }}
+        >
+          <div className="mb-8 bg-gradient-to-b from-white to-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-indigo-100 p-2 rounded-lg">
+                  <FileText className="h-5 w-5 text-indigo-600" />
+                </div>
+                <h2 className="text-xl font-bold text-indigo-600">Number of Questions</h2>
+              </div>
+              <p className="text-slate-600 mb-4">
+                Select how many interview questions you want to practice
+              </p>
+              <select
+                value={numQuestions}
+                onChange={(e) => setNumQuestions(Number(e.target.value))}
+                className="w-full p-3 border border-slate-200 rounded-xl bg-white text-slate-700 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              >
+                <option value={1}>1 Question</option>
+                <option value={3}>3 Questions</option>
+                <option value={5}>5 Questions</option>
+              </select>
+            </div>
+          </div>
+        </motion.div>
+
 
         {/* Start Button Card */}
         <motion.div

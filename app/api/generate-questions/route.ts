@@ -51,10 +51,11 @@ function extractTextFromResponse(data: OpenAIResponse): string {
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobDescription, resume } = await request.json();
+    const { jobDescription, resume, numQuestions } = await request.json();
+    const questionCount = numQuestions || 5;
 
     const systemPrompt = `You are an expert interview coach.
-Return ONLY a valid JSON array of exactly 5 strings (no keys, no commentary, nothing else).
+Return ONLY a valid JSON array of exactly ${questionCount} strings (no keys, no commentary, nothing else).
 Example:
 ["Question 1", "Question 2", "..."]
 Each string should be a complete question. Generate fair questions covering behavioral questions, technical understanding, and role-specific scenarios. 
@@ -121,16 +122,13 @@ Ensure the questions are concise, maintain the word count between 20 - 30.`;
     const questions = parsed.map((q: any) => (typeof q === 'string' ? q.trim() : String(q))).filter(Boolean);
     questions.forEach((q, i) => console.log(`${i + 1}. ${q}`));
 
-    if (questions.length > 5) {
-      console.warn('Model returned more than 5 questions; trimming to 5.', { count: questions.length });
-      questions.splice(5);
+    if (questions.length > questionCount) {
+      questions.splice(questionCount);
     }
-    if (questions.length < 5) {
-      console.error('Model returned fewer than 5 questions', { count: questions.length, questions });
-      return NextResponse.json({ error: 'Model returned fewer than 5 questions', raw: questions }, { status: 500 });
+    if (questions.length < questionCount) {
+      return NextResponse.json({ error: `Model returned fewer than ${questionCount} questions`, raw: questions }, { status: 500 });
     }
 
-    //return NextResponse.json({ questions });
     return new NextResponse(JSON.stringify({ questions }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
