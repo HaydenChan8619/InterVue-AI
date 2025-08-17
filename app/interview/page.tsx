@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 
 export default function InterviewPage() {
   const [questions, setQuestions] = useState<string[]>([]);
+  const [questionsAudio, setQuestionsAudio] = useState<string[] | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [responses, setResponses] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,6 +17,7 @@ export default function InterviewPage() {
 
   useEffect(() => {
     const storedQuestions = sessionStorage.getItem('questions');
+    const storedAudios = sessionStorage.getItem('questionsAudio');
     if (!storedQuestions) {
       router.push('/');
       return;
@@ -23,6 +25,14 @@ export default function InterviewPage() {
     
     const parsedQuestions = JSON.parse(storedQuestions);
     setQuestions(parsedQuestions);
+
+    if (storedAudios) {
+      setQuestionsAudio(JSON.parse(storedAudios));
+    } else {
+      console.log('NO AUDIOOOOOOOOOOOO')
+      setQuestionsAudio(null);
+    }
+
     setIsLoading(false);
   }, [router]);
 
@@ -84,11 +94,12 @@ export default function InterviewPage() {
           </Card>
         </motion.div>
 
-        {questions.length > 0 && (
+        {questions.length > 0 && questionsAudio && (
           <InterviewQuestion
             question={questions[currentQuestion]}
             questionNumber={currentQuestion + 1}
             onComplete={handleQuestionComplete}
+            audioSrc={questionsAudio ? questionsAudio[currentQuestion] : undefined}
           />
         )}
       </div>

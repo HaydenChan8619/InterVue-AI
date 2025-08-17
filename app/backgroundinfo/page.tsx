@@ -54,6 +54,28 @@ export default function BackgroundInfoPage() {
       const { questions } = await response.json();
       sessionStorage.setItem('questions', JSON.stringify(questions));
       
+      const audioFiles: string[] = [];
+
+    for (const q of questions) {
+      const ttsResponse = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: q,
+          voiceName: "en-GB-Chirp3-HD-Achird",
+          audioEncoding: "MP3",
+        }),
+      });
+
+      if (!ttsResponse.ok) throw new Error("TTS request failed");
+
+      const { audioContent } = await ttsResponse.json();
+      audioFiles.push(audioContent); // Save base64 audio string
+    }
+
+    // Store the audio files in sessionStorage (or you can keep them in React state)
+    sessionStorage.setItem("questionsAudio", JSON.stringify(audioFiles));
+
       router.push('/interview');
     } catch (error) {
       console.error('Error starting interview:', error);

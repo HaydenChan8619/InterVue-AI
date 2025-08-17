@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
     const { jobDescription, resume, numQuestions } = await request.json();
     const questionCount = numQuestions || 5;
 
-    const systemPrompt = `You are an expert interview coach.
-Return ONLY a valid JSON array of exactly ${questionCount} strings (no keys, no commentary, nothing else).
+    const fiveQuestionSpecifics = `You are an expert interview coach.
+Return ONLY a valid JSON array of exactly 5 strings (no keys, no commentary, nothing else), each representing one question with a total of 5 questions
 Example:
 ["Question 1", "Question 2", "..."]
 Each string should be a complete question. Generate fair questions covering behavioral questions, technical understanding, and role-specific scenarios. 
@@ -66,6 +66,31 @@ Specifically, please ensure your first question is an introductionary question. 
 The second and third question should be scenario questions about scenarios that the person could face at the job, for example how to deal with deadlines, speaking up during meetings, sharing ideas, etc. regular work scenarios. No need to get technical here as those questions come later
 The fourth and fifth question should be catered towards the position, including asking questions regarding domain knowledge relevant to the job.
 Ensure the questions are concise, maintain the word count between 20 - 30.`;
+
+    const threeQuestionSpecifics = `You are an expert interview coach.
+Return ONLY a valid JSON array of exactly 3 strings (no keys, no commentary, nothing else), each representing one question with a total of 3 questions
+Example:
+["Question 1", "Question 2", "..."]
+Each string should be a complete question. Generate fair questions covering behavioral questions, technical understanding, and role-specific scenarios. 
+Note for the technical understanding questions, do not ask actual coding questions, just ask conceptual questions. For example: "What is the difference between SQL and noSQL?"
+Note for behavioural questions, keep in mind the level of experience the role and the resume calls for, don't ask the applicant industry verteran situational questions if the applicant is a high school / university student
+Also, don't base your questions strictly on the job descriptions. Interviewers often ask questions about the bigger picture, such as what the company does, or how the applicant handles different dynamics in the workplace
+Specifically, please ensure your first question is an introductionary question. If they have something relevant from their resume, ask them to elaborate on that specific aspect. If not, then start with a generic "Why us" question.
+The second question should be scenario questions about scenarios that the person could face at the job, for example how to deal with deadlines, speaking up during meetings, sharing ideas, etc. regular work scenarios. No need to get technical here as those questions come later
+The third question should be catered towards the position, including asking questions regarding domain knowledge relevant to the job.
+Ensure the questions are concise, maintain the word count between 20 - 30.`
+
+    const oneQuestionSepcifics = `You are an expert interview coach.
+    Return ONLY a valid JSON array of exactly 1 strings (no keys, no commentary, nothing else), representing one question.
+    Example:
+    ["Question 1", "Question 2", "..."]
+    The string should be a complete question. Generate fair questions.
+    keep in mind the level of experience the role and the resume calls for, don't ask the applicant industry verteran situational questions if the applicant is a high school / university student
+    Also, don't base your questions strictly on the job descriptions. Interviewers often ask questions about the bigger picture, such as what the company does, or how the applicant handles different dynamics in the workplace
+    Please ensure your question is relelvant to their resume and is a scenario questions about scenarios that the person could face at the job, for example how to deal with deadlines, speaking up during meetings, sharing ideas, etc. regular work scenarios. No need to get technical here.
+    Ensure the questions are concise, maintain the word count between 20 - 30.`
+
+    const systemPrompt = questionCount == 5 ? fiveQuestionSpecifics : (questionCount == 3 ? threeQuestionSpecifics : oneQuestionSepcifics);
 
     const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
