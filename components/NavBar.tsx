@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { signIn, useSession } from "next-auth/react";
 
 const NavBar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const router = useRouter();
+    const { data: session } = useSession();
 
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -14,9 +16,14 @@ const NavBar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const handleGetStarted = () => {
-        router.push('/backgroundinfo');
-    }
+    const handleLogin = () => {
+    const redirectTo =
+        typeof window !== "undefined"
+        ? window.location.origin + "/backgroundinfo"
+        : "/backgroundinfo";
+
+    signIn("google", { callbackUrl: redirectTo });
+    };
 
     const handleGetHome = () => {
         router.push('/');
@@ -58,11 +65,30 @@ const NavBar = () => {
             <a href="#" className="text-indigo-900 hover:text-indigo-600 font-medium transition-transform duration-200 hover:scale-105">About</a>
             </div> */}
             
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg transition duration-200 transform hover:scale-105"
-            onClick={handleGetStarted}>
-            Get Started
+            {session?.user ? (
+            <div className="flex items-center space-x-3">
+                {session.user.image && (
+                <Image
+                    src={session.user.image}
+                    width={36}
+                    height={36}
+                    alt="Profile"
+                    className="rounded-full"
+                />
+                )}
+                <span className="font-medium text-indigo-900">
+                {session.user.name}
+                </span>
+            </div>
+            ) : (
+            <button
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-5 rounded-lg transition duration-200 transform hover:scale-105"
+                onClick={handleLogin}
+            >
+                Sign In
             </button>
-        </div>
+            )}
+            </div>
         </nav>
     );
 }

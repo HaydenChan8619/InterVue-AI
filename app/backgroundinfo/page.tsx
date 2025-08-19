@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, FileText, ArrowRight, Upload, X } from 'lucide-react';
 import { extractPdfText } from '@/lib/extractPdfText';
 import { motion } from 'framer-motion';
+import LoginModal from '@/components/LoginModal';
+import { useSession } from 'next-auth/react';
 
 export default function BackgroundInfoPage() {
   const [jobDescription, setJobDescription] = useState('');
@@ -12,8 +14,16 @@ export default function BackgroundInfoPage() {
   const [resumeText, setResumeText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [numQuestions, setNumQuestions] = useState(3);
+  const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status !== "loading") {
+      setOpen(!session); 
+    }
+  }, [session, status]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,7 +97,8 @@ export default function BackgroundInfoPage() {
   const isFormValid = jobDescription.trim() && resumeText.trim();
 
   return(
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+      <LoginModal open={open} onClose={() => setOpen(false)} />
       <div className="max-w-4xl mx-auto pt-16 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
