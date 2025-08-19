@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY! // <-- server-only
 );
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   debug: true,
   providers: [
     GoogleProvider({
@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     // Runs on every sign-in attempt. Upserts user row keyed by email.
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       try {
         if (!user?.email) {
           console.error("No email returned from provider — rejecting sign in");
@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
         const providerAccountId = account?.providerAccountId ?? null;
 
         const payload = {
-          email: user.email,                       // email is NOT NULL UNIQUE
+          email: user.email,
           name: user.name ?? null,
           provider,
           provider_account_id: providerAccountId,
