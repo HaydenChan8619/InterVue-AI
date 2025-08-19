@@ -7,6 +7,7 @@ import { extractPdfText } from '@/lib/extractPdfText';
 import { motion } from 'framer-motion';
 import LoginModal from '@/components/LoginModal';
 import { useSession } from 'next-auth/react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function BackgroundInfoPage() {
   const [jobDescription, setJobDescription] = useState('');
@@ -18,12 +19,38 @@ export default function BackgroundInfoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { data: session, status } = useSession();
-
+  
   useEffect(() => {
     if (status !== "loading") {
       setOpen(!session); 
     }
-  }, [session, status]);
+
+    if (!session?.user?.user_id) return;
+
+    const fetchUserData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('job_last_used, resume_last_used')
+          .eq('user_id', session.user.user_id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user data:', error);
+          return;
+        }
+
+        if (data) {
+          setJobDescription(data.job_last_used ?? '');
+          setResumeText(data.resume_last_used ?? '');
+        }
+      } catch (err) {
+        console.error('Exception fetching user data:', err);
+      }
+    };
+
+    fetchUserData();
+  }, [session?.user?.user_id, session, status]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,13 +73,28 @@ export default function BackgroundInfoPage() {
     
     setIsLoading(true);
     
+    console.log('Session user ID:', session?.user?.user_id);
+    console.log('Job description to save:', jobDescription);
+    console.log('Resume text to save:', resumeText);
+    
     try {
+      // ✅ Save jobDescription + resume path to users table
+      const { data, error, count } = await supabase
+        .from("users")
+        .update({
+          job_last_used: jobDescription,
+          resume_last_used: resumeText, // just the path, not the full URL
+        })
+        .eq("user_id", session?.user?.user_id).select();
+
+      console.log('updated rows: ' + data?.length);
+
       // Store the job description and resume in sessionStorage for the interview flow
       sessionStorage.setItem('jobDescription', jobDescription);
       sessionStorage.setItem('resume', resumeText);
       sessionStorage.setItem('numQuestions', String(numQuestions));
       
-      // Generate questions based on job description and resume
+    /*  // Generate questions based on job description and resume
       const response = await fetch('/api/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,7 +128,7 @@ export default function BackgroundInfoPage() {
     // Store the audio files in sessionStorage (or you can keep them in React state)
     sessionStorage.setItem("questionsAudio", JSON.stringify(audioFiles));
 
-      router.push('/interview');
+      router.push('/interview');*/
     } catch (error) {
       console.error('Error starting interview:', error);
     } finally {
