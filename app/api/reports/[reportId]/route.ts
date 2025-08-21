@@ -8,7 +8,10 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(request: Request, { params }: { params: { reportId?: string } }) {
+export async function GET(
+  request: Request,
+  context: { params: { reportId: string } } // <-- correct typing
+) {
   try {
     const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
     if (!token || !token.email) {
@@ -32,9 +35,11 @@ export async function GET(request: Request, { params }: { params: { reportId?: s
     }
 
     const userId = userRow.user_id;
-    const reportId = params?.reportId;
+    const reportId = context.params.reportId; // <-- access here
 
-    if (!reportId) return NextResponse.json({ error: 'Missing report id' }, { status: 400 });
+    if (!reportId) {
+      return NextResponse.json({ error: 'Missing report id' }, { status: 400 });
+    }
 
     const { data, error } = await supabaseAdmin
       .from('reports')
@@ -48,7 +53,9 @@ export async function GET(request: Request, { params }: { params: { reportId?: s
       return NextResponse.json({ error: 'Failed to fetch report' }, { status: 500 });
     }
 
-    if (!data) return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    if (!data) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ report: data });
   } catch (err) {
