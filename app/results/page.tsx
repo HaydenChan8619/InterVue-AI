@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Home, Download, Star, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSession } from 'next-auth/react';
 
 interface QuestionResult {
   question: string;
@@ -23,9 +24,47 @@ export default function ResultsPage() {
   const [overallGrade, setOverallGrade] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.user_id ?? null;
 
   useEffect(() => {
-    const analyzeResponses = async () => {
+  const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
+  const ANALYSIS_DONE = 'analysis_done';
+  const ANALYSIS_RESULT = 'analysis_result';
+
+  let pollTimer: number | null = null;
+
+  const loadCachedResult = () => {
+    const raw = sessionStorage.getItem(ANALYSIS_RESULT);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  };
+
+  const waitForDone = (checkInterval = 300, timeout = 15000) =>
+    new Promise<{ results: QuestionResult[]; overallGrade: string } | null>((resolve) => {
+      const start = Date.now();
+      const tick = () => {
+        const done = sessionStorage.getItem(ANALYSIS_DONE);
+        if (done) {
+          const cached = loadCachedResult();
+          resolve(cached);
+          return;
+        }
+        if (Date.now() - start > timeout) {
+          resolve(null); // timed out waiting
+          return;
+        }
+        pollTimer = window.setTimeout(tick, checkInterval) as unknown as number;
+      };
+      tick();
+    });
+
+  const analyzeResponses = async () => {
+    try {
       const questions = sessionStorage.getItem('questions');
       const responses = sessionStorage.getItem('responses');
       const jobDescription = sessionStorage.getItem('jobDescription');
@@ -36,32 +75,113 @@ export default function ResultsPage() {
         return;
       }
 
+      // If we already have final result cached, use it and skip network
+      const cachedFinal = loadCachedResult();
+      if (cachedFinal) {
+        setResults(cachedFinal.results);
+        setOverallGrade(cachedFinal.overallGrade);
+        setIsLoading(false);
+        return;
+      }
+
+      // If another tab/mount has an analysis in progress, wait for it
+      const inProgress = sessionStorage.getItem(ANALYSIS_IN_PROGRESS);
+      if (inProgress) {
+        const waited = await waitForDone();
+        if (waited) {
+          setResults(waited.results);
+          setOverallGrade(waited.overallGrade);
+          setIsLoading(false);
+          return;
+        }
+        // if wait timed out, fall through and start a new analysis
+      }
+
+      // Start a new analysis run (create a runId)
+      const runId = crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random()}`;
+      sessionStorage.setItem(ANALYSIS_IN_PROGRESS, runId);
+
+      const response = await fetch('/api/analyze-responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questions: JSON.parse(questions),
+          responses: JSON.parse(responses),
+          jobDescription,
+          resume,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to analyze responses');
+
+      const data = await response.json();
+
+      // Save to state
+      setResults(data.results);
+      setOverallGrade(data.overallGrade);
+
+      // Persist final analysis to sessionStorage so future mounts can reuse it
       try {
-        const response = await fetch('/api/analyze-responses', {
+        const payload = { results: data.results, overallGrade: data.overallGrade };
+        sessionStorage.setItem(ANALYSIS_RESULT, JSON.stringify(payload));
+        sessionStorage.setItem(ANALYSIS_DONE, runId);
+      } catch (err) {
+        console.warn('Failed to write analysis cache to sessionStorage', err);
+      } finally {
+        sessionStorage.removeItem(ANALYSIS_IN_PROGRESS);
+      }
+
+      // Save report to DB (only once per run)
+      try {
+        // use the jobDescription & resume from sessionStorage (strings)
+        const jobDescriptionStr = jobDescription;
+        const resumeStr = resume;
+        // include the client run id so server can detect duplicates later if you want
+        const saveBody = {
+          userId,
+          reportGrade: data.overallGrade,
+          reportDetails: {
+            results: data.results,
+            jobDescription: jobDescriptionStr,
+            resume: resumeStr,
+            clientRunId: runId,
+            savedAt: new Date().toISOString(),
+          },
+        };
+
+        const saveRes = await fetch('/api/save-report', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            questions: JSON.parse(questions),
-            responses: JSON.parse(responses),
-            jobDescription,
-            resume
-          })
+          body: JSON.stringify(saveBody),
         });
 
-        if (!response.ok) throw new Error('Failed to analyze responses');
-
-        const data = await response.json();
-        setResults(data.results);
-        setOverallGrade(data.overallGrade);
-      } catch (error) {
-        console.error('Error analyzing responses:', error);
-      } finally {
-        setIsLoading(false);
+        if (!saveRes.ok) {
+          const errJson = await saveRes.json().catch(() => ({ error: 'save failed' }));
+          console.warn('Save report failed:', errJson);
+        } else {
+          // optional success handling
+          // const saved = await saveRes.json();
+          // console.log('Report saved', saved);
+        }
+      } catch (saveErr) {
+        console.warn('Save report error:', saveErr);
       }
-    };
+    } catch (error) {
+      console.error('Error analyzing responses:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    analyzeResponses();
-  }, [router]);
+  analyzeResponses();
+
+  return () => {
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+    }
+  };
+}, [router, userId]);
+
 
   const handleStartSession = () => 
   {

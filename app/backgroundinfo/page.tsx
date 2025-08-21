@@ -68,6 +68,20 @@ export default function BackgroundInfoPage() {
     }
   };
 
+  const clearAnalysisCache = () => {
+  try {
+    const keysToClear = [
+      'analysis_in_progress',
+      'analysis_done',
+      'analysis_result',
+      'analysis_key'
+    ];
+    keysToClear.forEach(k => sessionStorage.removeItem(k));
+  } catch (err) {
+    console.warn('Failed to clear analysis cache', err);
+  }
+  };
+
   const handleStart = async () => {
     if (!jobDescription.trim() || !resumeText.trim()) return;
     
@@ -94,7 +108,7 @@ export default function BackgroundInfoPage() {
       sessionStorage.setItem('resume', resumeText);
       sessionStorage.setItem('numQuestions', String(numQuestions));
       
-    /*  // Generate questions based on job description and resume
+      // Generate questions based on job description and resume
       const response = await fetch('/api/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,8 +141,8 @@ export default function BackgroundInfoPage() {
 
     // Store the audio files in sessionStorage (or you can keep them in React state)
     sessionStorage.setItem("questionsAudio", JSON.stringify(audioFiles));
-
-      router.push('/interview');*/
+      clearAnalysisCache();
+      router.push('/interview');
     } catch (error) {
       console.error('Error starting interview:', error);
     } finally {
