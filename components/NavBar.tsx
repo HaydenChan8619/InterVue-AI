@@ -29,9 +29,13 @@ const NavBar = () => {
         router.push('/');
     }
 
+    const goToDashboard = () => {
+        router.push('/dashboard');
+    };
+
     return (
         <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'}`}>
-        <div className="container mx-auto px-32 flex justify-between items-center">
+        <div className="container mx-auto flex justify-between items-center">
         <div
         className="flex items-center space-x-2 cursor-pointer transition-transform duration-200 hover:scale-105"
         onClick={handleGetHome}
@@ -79,6 +83,13 @@ const NavBar = () => {
                 <span className="font-medium text-indigo-900">
                 {session.user.name}
                 </span>
+                <button
+                    onClick={goToDashboard}
+                    className="ml-2 bg-white border border-indigo-200 text-indigo-700 font-medium py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105"
+                    aria-label="Go to dashboard"
+                    >
+                    Dashboard
+                </button>
             </div>
             ) : (
             <button

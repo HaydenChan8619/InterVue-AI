@@ -4,6 +4,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from '@/components/Providers';
+import DisableScrollRestoration from '@/components/DisableScrollRestoration';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <NavBar />
+          <DisableScrollRestoration />
           {children}
           <Footer />
         </Providers>
