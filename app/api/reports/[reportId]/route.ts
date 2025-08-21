@@ -10,7 +10,7 @@ const supabaseAdmin = createClient(
 
 export async function GET(
   request: Request,
-  context: { params: { reportId: string } } // <-- correct typing
+  { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
     const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
@@ -35,7 +35,7 @@ export async function GET(
     }
 
     const userId = userRow.user_id;
-    const reportId = context.params.reportId; // <-- access here
+    const { reportId } = await params;
 
     if (!reportId) {
       return NextResponse.json({ error: 'Missing report id' }, { status: 400 });
