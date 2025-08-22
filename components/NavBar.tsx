@@ -35,7 +35,7 @@ const NavBar = () => {
 
     return (
         <nav className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'}`}>
-        <div className="container mx-auto flex justify-between items-center">
+        <div className="container mx-auto px-16 flex justify-between items-center">
         <div
         className="flex items-center space-x-2 cursor-pointer transition-transform duration-200 hover:scale-105"
         onClick={handleGetHome}
@@ -71,7 +71,7 @@ const NavBar = () => {
             
             {session?.user ? (
             <div className="flex items-center space-x-3">
-                {session.user.image && (
+                {/*{session.user.image && (
                 <Image
                     src={session.user.image}
                     width={36}
@@ -82,6 +82,9 @@ const NavBar = () => {
                 )}
                 <span className="font-medium text-indigo-900">
                 {session.user.name}
+                </span>*/}
+                <span className="font-medium text-indigo-900">
+                Credits: {(session.user as any).tokens_remaining}
                 </span>
                 <button
                     onClick={goToDashboard}

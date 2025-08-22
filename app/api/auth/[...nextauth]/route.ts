@@ -71,7 +71,7 @@ const authOptions: NextAuthOptions = {
 
         const { data: dbUser, error } = await supabaseAdmin
           .from("users")
-          .select("user_id, email, name")
+          .select("user_id, email, name, tokens_remaining")
           .eq("email", email)
           .maybeSingle();
 
@@ -79,6 +79,7 @@ const authOptions: NextAuthOptions = {
           (session.user as any).user_id = dbUser.user_id;
           session.user.name = dbUser.name ?? session.user.name;
           session.user.email = dbUser.email ?? session.user.email;
+          (session.user as any).tokens_remaining = dbUser.tokens_remaining;
         } else if (error) {
           console.error("Supabase session lookup error:", error);
         }
