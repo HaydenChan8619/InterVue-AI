@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const { price, label, packageId, credits, customerEmail, currency = 'CAD' } = body;
 
     const unitAmount = Math.round(parseFloat(price) * 100); // cents
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/backgroundinfo`;
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/backgroundinfo?success=true&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = `${process.env.NEXT_PUBLIC_APP_URL}/buy-credits`;
 
     const session = await stripe.checkout.sessions.create({

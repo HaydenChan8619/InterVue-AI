@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Briefcase, FileText, ArrowRight, Upload, X } from 'lucide-react';
 import { extractPdfText } from '@/lib/extractPdfText';
 import { motion } from 'framer-motion';
 import LoginModal from '@/components/LoginModal';
 import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabaseClient';
+import CreditPopup from '@/components/CreditPopup';
 
 export default function BackgroundInfoPage() {
   const [jobDescription, setJobDescription] = useState('');
@@ -19,6 +20,12 @@ export default function BackgroundInfoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { data: session, status } = useSession();
+
+  const searchParams = useSearchParams(); 
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [popupType, setPopupType] = useState<'success' | 'error' | 'info'>('info');
+  const [popupTitle, setPopupTitle] = useState('');
+  const [popupMessage, setPopupMessage] = useState('');
   
   useEffect(() => {
     if (status !== "loading") {
@@ -50,6 +57,42 @@ export default function BackgroundInfoPage() {
     };
 
     fetchUserData();
+
+    const success = searchParams.get('success');
+    const sessionId = searchParams.get('session_id');
+    const canceled = searchParams.get('canceled');
+
+    if (success && sessionId) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/stripe/session?session_id=${encodeURIComponent(sessionId)}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error || 'Verification failed');
+
+          const credits = data.credits ?? 0;
+          setPopupType('success');
+          setPopupTitle('Payment complete!');
+          setPopupMessage(`You now have ${credits} credits remaining.`);
+          setPopupOpen(true);
+
+          // remove params, keep user on page
+          router.replace('/backgroundinfo', { scroll: false });
+        } catch (err: any) {
+          console.error(err);
+          setPopupType('error');
+          setPopupTitle('Payment verification failed');
+          setPopupMessage(`We couldn't verify your payment. Please try again or contact support at aiintervue@gmail.com`);
+          setPopupOpen(true);
+          router.replace('/backgroundinfo', { scroll: false });
+        }
+      })();
+    } else if (canceled) {
+      setPopupType('error');
+      setPopupTitle('Payment canceled');
+      setPopupMessage('Your payment was canceled. Try again or contact support at aiintervue@gmail.com');
+      setPopupOpen(true);
+      router.replace('/backgroundinfo', { scroll: false });
+    }
   }, [session?.user?.user_id, session, status]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,6 +198,18 @@ export default function BackgroundInfoPage() {
   return(
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
       <LoginModal open={open} onClose={() => setOpen(false)} />
+      <CreditPopup
+        open={popupOpen}
+        type={popupType}
+        title={popupTitle}
+        message={popupMessage}
+        onClose={() => setPopupOpen(false)}
+        actionLabel={popupType === 'success' ? 'Continue' : undefined}
+        onAction={() => {
+          // example action: navigate somewhere
+          // router.push('/dashboard');
+        }}
+      />
       <div className="max-w-4xl mx-auto pt-16 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

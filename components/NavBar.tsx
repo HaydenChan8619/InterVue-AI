@@ -111,7 +111,7 @@ const NavBar = () => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setMenuOpen((s) => !s)}
-                className="flex items-center gap-2 bg-white border border-indigo-200 text-indigo-700 font-medium py-1.5 px-3 rounded-lg transition transform hover:scale-105"
+                className="flex items-center gap-2 border border-indigo-400 text-indigo-700 font-medium py-1.5 px-3 rounded-lg transition transform hover:scale-105"
                 aria-haspopup="true"
                 aria-expanded={menuOpen}
               >
