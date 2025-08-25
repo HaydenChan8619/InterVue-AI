@@ -57,6 +57,7 @@ const NavBar = () => {
       }`}
       role="navigation"
       aria-label="Main"
+      style={{ zIndex: 2147483647, top: 0 }}
     >
       <div className="container mx-auto px-6 md:px-16 flex items-center justify-between">
         {/* Left: logo + title */}
@@ -143,12 +144,12 @@ const NavBar = () => {
                     Dashboard
                   </button>
 
-                  <button
+                  {/*<button
                     onClick={() => { setMenuOpen(false); goToBuy(); }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                   >
                     Buy Credits
-                  </button>
+                  </button>*/}
 
                   <button
                     onClick={() => { setMenuOpen(false); signOut({ callbackUrl: typeof window !== 'undefined' ? window.location.origin : '/' });}}
@@ -170,6 +171,32 @@ const NavBar = () => {
           )}
         </div>
       </div>
+
+        {/* Global fixes: lower PayPal overlays so header stays on top */}
+    <style jsx global>{`
+      /* make sure header is above most overlays */
+      nav[role="navigation"] {
+        position: fixed; /* ensure nav participates in stacking with this z-index */
+        top: 0;
+      }
+
+      /* Target common PayPal injected nodes/iframes and push them behind the header */
+      iframe[src*="paypal.com"],
+      iframe[src*="paypalobjects.com"],
+      .paypal-button-container,
+      .paypal-buttons,
+      .paypal-payments,
+      [id^="__paypal"] {
+        z-index: 1 !important;
+        position: relative !important;
+      }
+
+      /* If PayPal uses a fixed overlay wrapper, lower it too */
+      div[id*="paypal"], div[class*="paypal"] {
+        z-index: 1 !important;
+        position: relative !important;
+      }
+    `}</style>
     </nav>
   );
 }
