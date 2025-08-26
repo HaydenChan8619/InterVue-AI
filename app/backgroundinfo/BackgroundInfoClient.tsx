@@ -9,6 +9,8 @@ import LoginModal from '@/components/LoginModal';
 import { useSession } from 'next-auth/react';
 import { supabase } from '@/lib/supabaseClient';
 import CreditPopup from '@/components/CreditPopup';
+import { signIn } from 'next-auth/react';
+import { FcGoogle } from 'react-icons/fc';
 
 export default function BackgroundInfoClient() {
   const [jobDescription, setJobDescription] = useState('');
@@ -125,46 +127,97 @@ export default function BackgroundInfoClient() {
   }
   };
 
-  const handleStart = async () => {
-    if (!jobDescription.trim() || !resumeText.trim()) return;
-    
+  const startGoogle = async () => {
+  try {
     setIsLoading(true);
-    
-    console.log('Session user ID:', session?.user?.user_id);
-    console.log('Job description to save:', jobDescription);
-    console.log('Resume text to save:', resumeText);
-    
-    try {
-      // ✅ Save jobDescription + resume path to users table
-      const { data, error, count } = await supabase
-        .from("users")
-        .update({
-          job_last_used: jobDescription,
-          resume_last_used: resumeText, // just the path, not the full URL
-        })
-        .eq("user_id", session?.user?.user_id).select();
+    // redirect back to this page after sign in
+    await signIn('google', { callbackUrl: `${window.location.origin}/backgroundinfo` });
+    // signIn usually redirects, so the next line might not run — but keep it for safety
+    setIsLoading(false);
+  } catch (err) {
+    console.error('Sign in failed', err);
+    setIsLoading(false);
+  }
+};
 
-      console.log('updated rows: ' + data?.length);
 
-      // Store the job description and resume in sessionStorage for the interview flow
-      sessionStorage.setItem('jobDescription', jobDescription);
-      sessionStorage.setItem('resume', resumeText);
-      sessionStorage.setItem('numQuestions', String(numQuestions));
-      
-      // Generate questions based on job description and resume
-      const response = await fetch('/api/generate-questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobDescription, resume: resumeText, numQuestions })
-      });
-      
-      if (!response.ok) throw new Error('Failed to generate questions');
-      
-      const { questions } = await response.json();
-      sessionStorage.setItem('questions', JSON.stringify(questions));
-      
-      const audioFiles: string[] = [];
+  const handleStart = async () => {
+  if (!jobDescription.trim() || !resumeText.trim()) return;
 
+  setIsLoading(true);
+
+  try {
+    const userId = session?.user?.user_id;
+    if (!userId) throw new Error('No session user id');
+
+    // 1) Read current tokens
+    const { data: userRow, error: selectError } = await supabase
+      .from('users')
+      .select('tokens_remaining, tokens_used')
+      .eq('user_id', userId)
+      .single();
+
+    if (selectError || !userRow) {
+      console.error('Failed to read user tokens', selectError);
+      setIsLoading(false);
+      return handleFail?.();
+    }
+
+    if ((userRow.tokens_remaining ?? 0) < 1) {
+      console.log('Not enough tokens');
+      setIsLoading(false);
+      return handleFail?.();
+    }
+
+    // 2) Attempt to atomically deduct 1 token (client-side approach)
+    //    This uses a filter so the update only happens if tokens_remaining >= 1
+    //    Note: this is not perfectly atomic under concurrent clients. See note above.
+    const { data: updatedUsers, error: updateError } = await supabase
+      .from('users')
+      .update({ tokens_remaining: userRow.tokens_remaining - 1, tokens_used: userRow.tokens_used + 1})
+      .eq('user_id', userId)
+      .gte('tokens_remaining', 1) // ensure there was at least 1 before update
+      .select();
+
+    if (updateError || !updatedUsers || updatedUsers.length === 0) {
+      console.error('Token deduction failed', updateError);
+      setIsLoading(false);
+      return handleFail?.();
+    }
+
+    console.log('Token deducted, continuing...');
+
+    // ✅ Save jobDescription + resume path to users table (as you had)
+    const { data, error } = await supabase
+      .from("users")
+      .update({
+        job_last_used: jobDescription,
+        resume_last_used: resumeText,
+      })
+      .eq("user_id", userId)
+      .select();
+
+    if (error) console.warn('Warning: failed to update job/resume fields', error);
+
+    // Store the job/resume locally for the flow
+    sessionStorage.setItem('jobDescription', jobDescription);
+    sessionStorage.setItem('resume', resumeText);
+    sessionStorage.setItem('numQuestions', String(numQuestions));
+
+    // Generate questions
+    const response = await fetch('/api/generate-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobDescription, resume: resumeText, numQuestions })
+    });
+
+    if (!response.ok) throw new Error('Failed to generate questions');
+
+    const { questions } = await response.json();
+    sessionStorage.setItem('questions', JSON.stringify(questions));
+
+    // TTS generation (your existing loop)
+    const audioFiles: string[] = [];
     for (const q of questions) {
       const ttsResponse = await fetch("/api/tts", {
         method: "POST",
@@ -182,16 +235,60 @@ export default function BackgroundInfoClient() {
       audioFiles.push(audioContent); // Save base64 audio string
     }
 
-    // Store the audio files in sessionStorage (or you can keep them in React state)
     sessionStorage.setItem("questionsAudio", JSON.stringify(audioFiles));
-      clearAnalysisCache();
-      router.push('/interview');
-    } catch (error) {
-      console.error('Error starting interview:', error);
-    } finally {
+
+    // 3) Insert action_log BEFORE navigation
+    //    Include whatever details you want to track
+    const actionDetails = {
+      job_last_used: jobDescription,
+      resume_last_used: resumeText,
+      numQuestions,
+      questionsPreview: questions,
+    };
+
+    const { data: logData, error: logError } = await supabase
+      .from('action_log')
+      .insert([{
+        user_id: userId,
+        type: 'interview_initalized',
+        details: actionDetails
+      }])
+      .select();
+
+    if (logError) {
+      console.error('Failed to insert action_log', logError);
+
+      // Attempt to restore token (best-effort)
+      try {
+        await supabase
+          .from('users')
+          .update({ tokens_remaining: userRow.tokens_remaining })
+          .eq('user_id', userId);
+        console.log('Attempted to restore token after log insert failure');
+      } catch (restoreErr) {
+        console.error('Failed to restore token after log insert failure', restoreErr);
+      }
+
       setIsLoading(false);
+      return handleFail?.();
     }
-  };
+
+    console.log('Action logged:', logData);
+    clearAnalysisCache();
+    router.push('/interview');
+    // Everything succeeded — proceed to next steps (navigate, etc.)
+  } catch (err) {
+    console.error('Unexpected error in handleStart', err);
+    handleFail?.();
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleFail = () => {
+    //later problem
+}
+
 
   const isFormValid = jobDescription.trim() && resumeText.trim();
 
@@ -396,51 +493,69 @@ export default function BackgroundInfoClient() {
 
         {/* Start Button Card */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
             type: "tween",
             ease: "easeOut",
             duration: 0.8,
             delay: 0.3
-          }}
+        }}
         >
-          <div className="bg-gradient-to-br from-white to-white rounded-2xl shadow-lg border border-indigo-100 backdrop-blur-sm">
+        <div className="bg-gradient-to-br from-white to-white rounded-2xl shadow-lg border border-indigo-100 backdrop-blur-sm">
             <div className="p-8">
-              <div className="text-center">
+            <div className="text-center">
                 <h3 className="text-xl font-bold text-indigo-600 mb-3">Ready to begin?</h3>
                 <p className="text-slate-600 max-w-2xl mx-auto">
-                  You'll be asked 5 questions based on the job description and your background.
-                </p> 
-                  
-                  <p className='text-slate-600 mb-6 max-w-2xl mx-auto'>Each question will be recorded using your microphone.</p>
-                
+                You'll be asked {numQuestions} question{numQuestions > 1 ? 's' : ''} based on the job description and your background.
+                </p>
+                <p className='text-slate-600 mb-6 max-w-2xl mx-auto'>Each question will be recorded using your microphone.</p>
+
+                {/* If user is NOT signed in, show the Google sign-in button */}
+                {!session ? (
+                <div className="mt-6 flex justify-center">
+                    <button
+                    onClick={startGoogle}
+                    disabled={isLoading || status === 'loading'}
+                    className={`flex items-center justify-center gap-3 px-8 py-2 rounded-xl font-medium transition ${
+                        isLoading || status === 'loading'
+                        ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                        : "bg-white border border-slate-200 hover:bg-indigo-50"
+                    }`}
+                    >
+                    <FcGoogle className="h-5 w-5" />
+                    <span>{isLoading ? "Redirecting…" : "Login with Google"}</span>
+                    </button>
+                </div>
+                ) : (
+                /* User IS signed in — show the original Start Interview button */
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleStart}
-                  disabled={!isFormValid || isLoading}
-                  className={`px-8 py-4 rounded-xl font-medium text-lg transition-all ${
-                    !isFormValid || isLoading 
-                      ? "bg-slate-300 text-slate-500 cursor-not-allowed" 
-                      : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
-                  }`}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleStart}
+                    disabled={!isFormValid || isLoading}
+                    className={`px-8 py-4 rounded-xl font-medium text-lg transition-all ${
+                    !isFormValid || isLoading
+                        ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+                        : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
+                    }`}
                 >
-                  {isLoading ? (
+                    {isLoading ? (
                     <div className="flex items-center justify-center gap-2">
-                      <span>Generating Questions...</span>
-                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white border-opacity-50"></div>
+                        <span>Generating Questions...</span>
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white border-opacity-50"></div>
                     </div>
-                  ) : (
+                    ) : (
                     <div className="flex items-center justify-center gap-2">
-                      <span>Start Interview Practice</span>
-                      <ArrowRight className="h-5 w-5" />
+                        <span>Start Interview Practice</span>
+                        <ArrowRight className="h-5 w-5" />
                     </div>
-                  )}
+                    )}
                 </motion.button>
-              </div>
+                )}
             </div>
-          </div>
+            </div>
+        </div>
         </motion.div>
       </div>
     </div>

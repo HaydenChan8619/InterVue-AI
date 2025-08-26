@@ -23,18 +23,36 @@ export async function POST(request: Request) {
       report_details: reportDetails,
     };
 
-    const { data, error } = await supabaseAdmin
+    const { data: reportData, error: reportError } = await supabaseAdmin
       .from('reports')
       .insert(payload)
       .select()
       .single();
 
-    if (error) {
-      console.error('Supabase insert error (save-report):', error);
-      return NextResponse.json({ error: 'Failed to save report', details: error }, { status: 500 });
+    const actionDetails = {
+      report_grade: reportGrade,
+      report_details: reportDetails,
+    };
+
+    const { data: actionLogData, error: actionLogError } = await supabaseAdmin
+      .from('action_log')
+      .insert([{
+        user_id: userId,
+        type: 'interview_completed',
+        details: actionDetails
+      }])
+      .select();
+
+    if (reportError) {
+      console.error('Supabase insert error (save-report):', reportError);
+      return NextResponse.json({ error: 'Failed to save report', details: reportError }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, report: data }, { status: 201 });
+    if (actionLogError) {
+      console.error('Supabase insert error (action_log):', actionLogError);
+    }
+
+    return NextResponse.json({ success: true, report: reportData }, { status: 201 });
 
   } catch (err) {
     console.error('Unexpected error in save-report:', err);

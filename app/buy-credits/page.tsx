@@ -39,6 +39,7 @@ export default function BuyCreditsPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        userId: session?.user?.user_id,
         price: selected.price,     // "3.00"
         label: selected.label,
         packageId: selected.id,

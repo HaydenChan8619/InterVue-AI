@@ -47,14 +47,37 @@ export async function POST(req: Request) {
           credits,
         });
 
+        const actionDetails = {
+          credits_purchased: credits,
+        };
+
+        const { data: user, error: usersError } = await supabaseAdmin
+          .from('users')
+          .select('user_id, email')
+          .eq('email', customerEmail)
+          .limit(1);
+
+        const { data: actionLogData, error: actionLogError } = await supabaseAdmin
+          .from('action_log')
+          .insert([{
+            user_id: user?.[0].user_id,
+            type: 'purchase_completed',
+            details: actionDetails
+          }])
+          .select();
+
         if (error) {
           console.error("❌ Supabase update error:", error);
         } else {
           console.log(`✅ Added ${credits} tokens to ${customerEmail}`);
         }
+
+        if (actionLogError) {
+        console.error("❌ Unexpected error updating action log:", actionLogError);
+        }
       } catch (err) {
         console.error("❌ Unexpected error updating Supabase:", err);
-      }
+      } 
     }
   }
 
