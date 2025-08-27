@@ -144,12 +144,12 @@ const NavBar = () => {
                     Dashboard
                   </button>
 
-                  {/*<button
+                  <button
                     onClick={() => { setMenuOpen(false); goToBuy(); }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
                   >
                     Buy Credits
-                  </button>*/}
+                  </button>
 
                   <button
                     onClick={() => { setMenuOpen(false); signOut({ callbackUrl: typeof window !== 'undefined' ? window.location.origin : '/' });}}

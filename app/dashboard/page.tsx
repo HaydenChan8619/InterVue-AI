@@ -14,6 +14,8 @@ type ReportSummary = {
 export default function DashboardPage() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [doneAnimations, setDoneAnimations] = useState<boolean[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,6 +42,27 @@ export default function DashboardPage() {
     return d.toLocaleString();
   };
 
+  const numberPerPage = 5;
+  const showMore = () => setVisibleCount((v) => Math.min(reports.length, v + numberPerPage));
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 16 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        // slightly increased stagger so items don't all start at once
+        staggerChildren: 0.2,
+        delayChildren: 0.05,
+      },
+    },
+  } as const;
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 25 },
+    show: { opacity: 1, y: 0, transition: { type: 'tween', ease: 'easeOut', duration: 0.3 } },
+  } as const;
+
   if (isLoading) return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 flex items-center justify-center">
       <div className="text-gray-600">Loading reports...</div>
@@ -59,20 +82,53 @@ export default function DashboardPage() {
           <p className="text-xl text-slate-700">Your past interview reports</p>
         </motion.div>
 
-        <div className="space-y-4">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="space-y-4"
+        >
           {reports.length === 0 && (
             <div className="text-center text-slate-600">No reports yet — try a practice interview.</div>
           )}
 
-          {reports.map((r) => (
-            <motion.div key={r.report_id} whileHover={{ y: -3 }} className="bg-white rounded-2xl shadow border border-indigo-100 overflow-hidden">
+          {reports.slice(0, visibleCount).map((r, idx) => (
+            <motion.div
+              key={r.report_id}
+              variants={itemVariants}
+              whileHover={
+                  doneAnimations[idx]
+                    ? {
+                        scale: 1.02,
+                        transition: { type: 'tween', ease: 'easeOut', duration: 0.2 },
+                      }
+                    : {}
+                }
+                onAnimationComplete={() => {
+                  setDoneAnimations((prev) => {
+                    const next = [...prev];
+                    next[idx] = true;
+                    return next;
+                  });
+                }}
+              className="bg-white rounded-2xl shadow border border-indigo-100 overflow-hidden"
+              layout
+            >
               <button
                 onClick={() => router.push(`/reports/${r.report_id}`)}
                 className="w-full text-left p-4 flex items-center justify-between"
               >
                 <div className="text-slate-700">
                   <div className="font-medium text-indigo-600">{formatDate(r.created_at)}</div>
-                  <div className="text-sm text-slate-500 mt-1">{r.report_details?.jobDescription ? r.report_details.jobDescription.slice(0, 80) + (r.report_details.jobDescription.length > 80 ? '...' : '') : ''}</div>
+                  <div className="text-sm text-slate-500 mt-1">
+                    {r.report_details?.jobDescription
+                      ? (
+                        r.report_details.jobDescription.length > 80
+                          ? r.report_details.jobDescription.slice(0, 80) + '...'
+                          : r.report_details.jobDescription
+                      )
+                      : ''}
+                  </div>
                 </div>
                 <div className={`text-xl font-bold rounded-full px-4 py-2 ${getGradeColor(r.report_grade ?? '')}`}>
                   {r.report_grade ?? '—'}
@@ -80,7 +136,18 @@ export default function DashboardPage() {
               </button>
             </motion.div>
           ))}
-        </div>
+
+          {visibleCount < reports.length && (
+            <div className="flex justify-center pt-2">
+              <button
+                onClick={showMore}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-medium shadow hover:brightness-105"
+              >
+                Show more
+              </button>
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
