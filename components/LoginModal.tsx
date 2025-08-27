@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FcGoogle } from "react-icons/fc";
 import { X } from "lucide-react";
@@ -22,15 +22,6 @@ export default function LoginModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
   if (!open) return null;
 
   const startGoogle = async () => {
@@ -48,13 +39,12 @@ export default function LoginModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Overlay */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.5 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
         className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm"
+        aria-hidden="true"
       />
 
       {/* Modal */}
@@ -76,13 +66,13 @@ export default function LoginModal({
               Login to get started with InterVue AI
             </p>
           </div>
-          <button
+          {/*<button
             onClick={onClose}
             aria-label="Close"
             className="p-2 rounded-full hover:bg-slate-100 text-slate-600"
           >
             <X className="h-4 w-4" />
-          </button>
+          </button>*/}
         </div>
 
         <div className="mt-6">
@@ -99,9 +89,7 @@ export default function LoginModal({
             <span>{isLoading ? "Redirecting…" : "Continue with Google"}</span>
           </button>
 
-          {error && (
-            <div className="mt-3 text-sm text-red-600">{error}</div>
-          )}
+          {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
         </div>
       </motion.div>
     </div>
