@@ -28,6 +28,7 @@ export default function BackgroundInfoClient() {
   const [popupType, setPopupType] = useState<'success' | 'error' | 'info'>('info');
   const [popupTitle, setPopupTitle] = useState('');
   const [popupMessage, setPopupMessage] = useState('');
+  const [savedFileName, setSavedFileName] = useState('');
   
   useEffect(() => {
     if (status !== "loading") {
@@ -40,7 +41,7 @@ export default function BackgroundInfoClient() {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('job_last_used, resume_last_used')
+          .select('job_last_used, resume_last_used, resume_file_name')
           .eq('user_id', session.user.user_id)
           .single();
 
@@ -52,6 +53,7 @@ export default function BackgroundInfoClient() {
         if (data) {
           setJobDescription(data.job_last_used ?? '');
           setResumeText(data.resume_last_used ?? '');
+          setSavedFileName(data.resume_file_name ?? '')
         }
       } catch (err) {
         console.error('Exception fetching user data:', err);
@@ -102,12 +104,14 @@ export default function BackgroundInfoClient() {
     if (file) {
       const text = await extractPdfText(file);
       setResumeText(text);
+      setSavedFileName(file.name);
     }
   };
 
   const removeFile = () => {
     setResumeFile(null);
     setResumeText('');
+    setSavedFileName('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -193,6 +197,7 @@ export default function BackgroundInfoClient() {
       .update({
         job_last_used: jobDescription,
         resume_last_used: resumeText,
+        resume_file_name: savedFileName
       })
       .eq("user_id", userId)
       .select();
@@ -348,32 +353,43 @@ const handleFail = () => {
                 </p>
                 
                 <div className="space-y-6">
-                  <div 
-                    className="border-2 border-dashed border-indigo-200 rounded-xl p-8 text-center hover:border-indigo-300 transition-colors cursor-pointer bg-white"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".txt,.pdf,.doc,.docx"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="resume-upload"
-                    />
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="bg-indigo-100 p-3 rounded-full mb-4">
-                        <Upload className="h-6 w-6 text-indigo-600" />
+                  {savedFileName && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="bg-green-50 border border-green-200 rounded-xl p-4"
+                    >
+                      <div className="flex items-center justify-between">
+                      <p className="text-lg font-bold text-indigo-600 pb-2">
+                          Resume Saved
+                      </p>
+                      <button
+                          onClick={removeFile}
+                          className="text-slate-500 hover:text-slate-800 hover:bg-slate-100 p-2 rounded-full"
+                        >
+                          <X className="h-4 w-4" />
+                       </button>
                       </div>
-                      <p className="text-sm font-medium text-slate-700 mb-1">
-                        Click to upload your resume
+                      <div className="flex items-center justify-between">
+                
+                        <div className="flex items-center space-x-3 text-lg">
+                          <div className="bg-blue-100 p-2 rounded-lg">
+                            <FileText className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-indigo-600 truncate max-w-xs">
+                              {savedFileName}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Upload a new resume to replace this one
                       </p>
-                      <p className="text-xs text-slate-500">
-                        Supports .pdf files
-                      </p>
-                    </div>
-                  </div>
+                    </motion.div>
+                  )}
                   
-                  {resumeFile && (
+                  {resumeFile && !savedFileName && (
                     <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -403,17 +419,30 @@ const handleFail = () => {
                     </motion.div>
                   )}
                   
-                  {resumeText && (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="mt-4"
-                    >
-                      <h3 className="text-sm font-medium text-green-600">
-                        Resume Uploaded!
-                      </h3>
-                    </motion.div>
-                  )}
+                  <div 
+                    className="border-2 border-dashed border-indigo-200 rounded-xl p-8 text-center hover:border-indigo-300 transition-colors cursor-pointer bg-white"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".txt,.pdf,.doc,.docx"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="resume-upload"
+                    />
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="bg-indigo-100 p-3 rounded-full mb-4">
+                        <Upload className="h-6 w-6 text-indigo-600" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 mb-1">
+                        {savedFileName || resumeFile ? 'Upload a different resume' : 'Click to upload your resume'}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Supports .pdf files
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -547,7 +576,7 @@ const handleFail = () => {
                     </div>
                     ) : (
                     <div className="flex items-center justify-center gap-2">
-                        <span>Start Interview Practice</span>
+                        <span>Start Interview Practice (1 Credit)</span>
                         <ArrowRight className="h-5 w-5" />
                     </div>
                     )}
