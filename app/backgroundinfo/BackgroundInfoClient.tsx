@@ -30,12 +30,24 @@ export default function BackgroundInfoClient() {
   const [popupMessage, setPopupMessage] = useState('');
   const [savedFileName, setSavedFileName] = useState('');
   
-  useEffect(() => {
-    if (status !== "loading") {
-      setOpen(!session); 
-    }
+  // inside your component, above the effects:
+  const didFetchRef = useRef(false);  
+  const didHandleStripeRef = useRef(false);
 
-    if (!session?.user?.user_id) return;
+  /* 1) keep the modal open logic reactive (runs whenever status/session change) */
+  useEffect(() => {
+    if (status !== 'loading') {
+      setOpen(!session);
+    }
+  }, [status, session]);
+
+  /* 2) fetch user data only once when we first observe an authenticated session */
+  useEffect(() => {
+    if (didFetchRef.current) return;              // already fetched once — skip
+    if (status !== 'authenticated') return;       // wait until session is authenticated
+    if (!session?.user?.user_id) return;          // need a user id
+
+    didFetchRef.current = true; // mark so we don't fetch again
 
     const fetchUserData = async () => {
       try {
@@ -53,7 +65,7 @@ export default function BackgroundInfoClient() {
         if (data) {
           setJobDescription(data.job_last_used ?? '');
           setResumeText(data.resume_last_used ?? '');
-          setSavedFileName(data.resume_file_name ?? '')
+          setSavedFileName(data.resume_file_name ?? '');
         }
       } catch (err) {
         console.error('Exception fetching user data:', err);
@@ -61,6 +73,12 @@ export default function BackgroundInfoClient() {
     };
 
     fetchUserData();
+  }, [status, session?.user?.user_id]); // the guard ensures run only once
+
+  
+  useEffect(() => {
+    if (didHandleStripeRef.current) return;
+    didHandleStripeRef.current = true;
 
     const success = searchParams.get('success');
     const sessionId = searchParams.get('session_id');
@@ -79,7 +97,6 @@ export default function BackgroundInfoClient() {
           setPopupMessage(`You now have ${credits} credits remaining.`);
           setPopupOpen(true);
 
-          // remove params, keep user on page
           router.replace('/backgroundinfo', { scroll: false });
         } catch (err: any) {
           console.error(err);
@@ -97,7 +114,7 @@ export default function BackgroundInfoClient() {
       setPopupOpen(true);
       router.replace('/backgroundinfo', { scroll: false });
     }
-  }, [session?.user?.user_id, session, status]);
+  }, []); // run once on mount
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
