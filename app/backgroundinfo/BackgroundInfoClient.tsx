@@ -150,150 +150,17 @@ export default function BackgroundInfoClient() {
 
   setIsLoading(true);
 
-  try {
-    const userId = session?.user?.user_id;
-    if (!userId) throw new Error('No session user id');
+  sessionStorage.setItem('jobDescription', jobDescription);
+  sessionStorage.setItem('resume', resumeText);
+  sessionStorage.setItem('numQuestions', String(numQuestions));
+  sessionStorage.setItem('resumeFileName',savedFileName);
+  clearAnalysisCache();
+  sessionStorage.removeItem('questions');
+  sessionStorage.removeItem('questionsAudio');
 
-    // 1) Read current tokens
-    const { data: userRow, error: selectError } = await supabase
-      .from('users')
-      .select('tokens_remaining, tokens_used')
-      .eq('user_id', userId)
-      .single();
-
-    if (selectError || !userRow) {
-      console.error('Failed to read user tokens', selectError);
-      setIsLoading(false);
-      return handleFail?.();
-    }
-
-    if ((userRow.tokens_remaining ?? 0) < 1) {
-      console.log('Not enough tokens');
-      setIsLoading(false);
-      return handleFail?.();
-    }
-
-    // 2) Attempt to atomically deduct 1 token (client-side approach)
-    //    This uses a filter so the update only happens if tokens_remaining >= 1
-    //    Note: this is not perfectly atomic under concurrent clients. See note above.
-    const { data: updatedUsers, error: updateError } = await supabase
-      .from('users')
-      .update({ tokens_remaining: userRow.tokens_remaining - 1, tokens_used: userRow.tokens_used + 1})
-      .eq('user_id', userId)
-      .gte('tokens_remaining', 1) // ensure there was at least 1 before update
-      .select();
-
-    if (updateError || !updatedUsers || updatedUsers.length === 0) {
-      console.error('Token deduction failed', updateError);
-      setIsLoading(false);
-      return handleFail?.();
-    }
-
-    console.log('Token deducted, continuing...');
-
-    // ✅ Save jobDescription + resume path to users table (as you had)
-    const { data, error } = await supabase
-      .from("users")
-      .update({
-        job_last_used: jobDescription,
-        resume_last_used: resumeText,
-        resume_file_name: savedFileName
-      })
-      .eq("user_id", userId)
-      .select();
-
-    if (error) console.warn('Warning: failed to update job/resume fields', error);
-
-    // Store the job/resume locally for the flow
-    sessionStorage.setItem('jobDescription', jobDescription);
-    sessionStorage.setItem('resume', resumeText);
-    sessionStorage.setItem('numQuestions', String(numQuestions));
-
-    // Generate questions
-    const response = await fetch('/api/generate-questions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobDescription, resume: resumeText, numQuestions })
-    });
-
-    if (!response.ok) throw new Error('Failed to generate questions');
-
-    const { questions } = await response.json();
-    sessionStorage.setItem('questions', JSON.stringify(questions));
-
-    // TTS generation (your existing loop)
-    const audioFiles: string[] = [];
-    for (const q of questions) {
-      const ttsResponse = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: q,
-          voiceName: "en-GB-Chirp3-HD-Achird",
-          audioEncoding: "MP3",
-        }),
-      });
-
-      if (!ttsResponse.ok) throw new Error("TTS request failed");
-
-      const { audioContent } = await ttsResponse.json();
-      audioFiles.push(audioContent); // Save base64 audio string
-    }
-
-    sessionStorage.setItem("questionsAudio", JSON.stringify(audioFiles));
-
-    // 3) Insert action_log BEFORE navigation
-    //    Include whatever details you want to track
-    const actionDetails = {
-      job_last_used: jobDescription,
-      resume_last_used: resumeText,
-      numQuestions,
-      questionsPreview: questions,
-    };
-
-    const { data: logData, error: logError } = await supabase
-      .from('action_log')
-      .insert([{
-        user_id: userId,
-        type: 'interview_initalized',
-        details: actionDetails
-      }])
-      .select();
-
-    if (logError) {
-      console.error('Failed to insert action_log', logError);
-
-      // Attempt to restore token (best-effort)
-      try {
-        await supabase
-          .from('users')
-          .update({ tokens_remaining: userRow.tokens_remaining })
-          .eq('user_id', userId);
-        console.log('Attempted to restore token after log insert failure');
-      } catch (restoreErr) {
-        console.error('Failed to restore token after log insert failure', restoreErr);
-      }
-
-      setIsLoading(false);
-      return handleFail?.();
-    }
-
-    console.log('Action logged:', logData);
-    clearAnalysisCache();
-    router.push('/interview');
-    // Everything succeeded — proceed to next steps (navigate, etc.)
-  } catch (err) {
-    console.error('Unexpected error in handleStart', err);
-    handleFail?.();
-  } finally {
-    setIsLoading(false);
-  }
+  // Immediately navigate to waiting room (fast UX)
+  router.push('/waiting-room');
 };
-
-const handleFail = () => {
-    //later problem
-}
-
 
   const isFormValid = jobDescription.trim() && resumeText.trim();
 

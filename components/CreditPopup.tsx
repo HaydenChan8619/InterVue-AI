@@ -14,6 +14,7 @@ type Props = {
   // optional action button (text + callback)
   actionLabel?: string;
   onAction?: () => void;
+  onBack?: () => void;
 };
 
 export default function CreditPopup({
@@ -25,6 +26,7 @@ export default function CreditPopup({
   autoCloseMs = null,
   actionLabel,
   onAction,
+  onBack
 }: Props) {
   const [localOpen, setLocalOpen] = useState(open);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +62,7 @@ export default function CreditPopup({
     setLocalOpen(false);
     // let animation run then call parent's onClose after short delay to keep UX snappy
     setTimeout(() => onClose?.(), 220);
+    onBack? onBack() : null;
   };
 
   const icon = type === 'success' ? (
@@ -79,7 +82,6 @@ export default function CreditPopup({
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.45 }}
             exit={{ opacity: 0 }}
-            onClick={handleClose}
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
 
@@ -120,27 +122,25 @@ export default function CreditPopup({
                   </div>
                 </div>
 
-                {/* actions 
-                {(actionLabel && onAction) && (
+                {(actionLabel && onAction && onBack) && (
                   <div className="mt-4 flex items-center gap-3">
                     <button
                       onClick={() => {
                         onAction();
-                        handleClose();
                       }}
                       className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium border bg-indigo-600 text-white hover:bg-indigo-700"
                     >
                       {actionLabel}
                     </button>
-
+                      
                     <button
                       onClick={handleClose}
                       className="text-sm px-3 py-1 rounded-md text-slate-600 hover:bg-slate-50"
                     >
-                      Dismiss
+                      Go Back
                     </button>
                   </div>
-                )}*/}
+                )}
               </div>
             </div>
           </motion.div>
