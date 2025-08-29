@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,12 @@ export default function ResultsPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const userId = (session?.user as any)?.user_id ?? null;
+  const [loadingDetail, setLoadingDetail] = useState<string>('Preparing analysis...');
+  const analysisRef = useRef(false);
+
+  const [perQuestionReady, setPerQuestionReady] = useState(false);
+  const [aggregateReady, setAggregateReady] = useState(false);
+  const [savedReady, setSavedReady] = useState(false);
 
  /* useEffect(() => {
   const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
@@ -183,7 +189,7 @@ export default function ResultsPage() {
 }, [router, userId]);*/
 
 // inside your component (replace your useEffect block with this)
-useEffect(() => {
+/*useEffect(() => {
   const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
   const ANALYSIS_DONE = 'analysis_done';
   const ANALYSIS_RESULT = 'analysis_result';
@@ -191,9 +197,11 @@ useEffect(() => {
   let pollTimer: number | null = null;
 
   const loadCachedResult = () => {
+    console.log('try to get cached results');
     const raw = sessionStorage.getItem(ANALYSIS_RESULT);
     if (!raw) return null;
-    try { return JSON.parse(raw); } catch { return null; }
+    try { console.log('found cached results');
+      return JSON.parse(raw); } catch { return null; }
   };
 
   const waitForDone = (checkInterval = 300, timeout = 15000) =>
@@ -219,7 +227,7 @@ useEffect(() => {
   const analyzeOnce = async () => {
     // if another code path in this window already created the promise, reuse it
     const globalKey = '__analysisPromise';
-    if ((window as any)[globalKey]) {
+    /*if ((window as any)[globalKey]) {
       return (window as any)[globalKey];
     }
 
@@ -290,7 +298,7 @@ useEffect(() => {
       } finally {
         // leave the promise in place while results are available to reuse;
         // optionally delete it here to allow new runs later:
-        // delete (window as any)[globalKey];
+        delete (window as any)[globalKey];
       }
     })();
 
@@ -334,7 +342,210 @@ useEffect(() => {
   };
   // NOTE: keep deps minimal so this runs only once per mount lifecycle.
   // remove userId from deps to avoid re-running when session resolves.
-}, [router]);
+}, [router]);*/
+
+  function safeRead<T = any>(key: string): T | null {
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return null;
+      return JSON.parse(raw) as T;
+    } catch (e) {
+      console.warn(`Failed to parse sessionStorage key ${key}:`, e);
+      return null;
+    }
+  }
+
+async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const analyses = safeRead<Array<QuestionResult | null>>('analyses') ?? [];
+      const questions = safeRead<string[]>('questions') ?? [];
+      // If length mismatch, don't block: exit and return whatever we have (server-side final analysis will handle gaps)
+      
+      //if (analyses.length >= questions.length && analyses.every((a) => a !== null)) {
+      if (questions.length > 0 && analyses.length >= questions.length && analyses.every((a) => a !== null)) {
+      setPerQuestionReady(true);
+        return analyses as QuestionResult[];
+      }
+      // If everything is present but some entries are null, keep polling for a short while
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    // timeout -> return whatever is available
+    return (safeRead<Array<QuestionResult | null>>('analyses') ?? []).map((a) => a ?? null);
+  }
+
+  async function callAggregateAnalysis() {
+    try {
+      // read base inputs from storage
+      const questions = safeRead<string[]>('questions') ?? [];
+      const responses = safeRead<string[]>('responses') ?? [];
+      const jobDescription = sessionStorage.getItem('jobDescription') ?? '';
+      const resume = sessionStorage.getItem('resume') ?? '';
+
+      // Prefer per-question analyses if available — wait briefly for in-flight ones.
+      const partialAnalyses = (await waitForAnalyses()) ?? [];
+
+      // Build payload. Include partialAnalyses as an optional field for future server use.
+      const payload = {
+        questions,
+        responses,
+        jobDescription,
+        resume,
+        partialAnalyses,
+        clientRunId: sessionStorage.getItem('clientRunId') ?? undefined,
+      };
+
+      const res = await fetch('/api/analyze-responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        console.warn('analyze-responses returned non-OK', data);
+        // Fallback: try to build results from partialAnalyses (if any), else from raw responses
+        if (partialAnalyses && partialAnalyses.length) {
+          const built = partialAnalyses
+            .map((p, i) =>
+              p
+                ? p
+                : {
+                    question: questions[i] ?? `Question ${i + 1}`,
+                    response: responses[i] ?? 'No response provided',
+                    grade: 'C',
+                    summary: 'No detailed analysis available',
+                    pros: [],
+                    cons: [],
+                  }
+            )
+            .filter(Boolean) as QuestionResult[];
+          setResults(built);
+          // crude overall grade fallback: take average of letter -> map to numeric
+          const avgGrade = fallbackOverallGrade(built.map((b) => b.grade));
+          setOverallGrade(avgGrade);
+          setIsLoading(false);
+
+          return;
+        }
+        // Last resort: populate minimal entries
+        const minimal = (questions || []).map((q, i) => ({
+          question: q,
+          response: (responses && responses[i]) || 'No response provided',
+          grade: 'C',
+          summary: 'No analysis available',
+          pros: [],
+          cons: [],
+        }));
+        setResults(minimal);
+        setOverallGrade('C');
+        setIsLoading(false);
+        return;
+      }
+
+      // Expect server to return the JSON in the shape { overallGrade, results }
+      if (data && data.results && Array.isArray(data.results)) {
+        // Coerce/normalize items to QuestionResult
+        const normalized: QuestionResult[] = data.results.map((r: any) => ({
+          question: String(r.question ?? ''),
+          response: String(r.response ?? ''),
+          grade: String(r.grade ?? 'C').slice(0, 1).toUpperCase(),
+          summary: String(r.summary ?? ''),
+          pros: Array.isArray(r.pros) ? r.pros.map(String) : [],
+          cons: Array.isArray(r.cons) ? r.cons.map(String) : [],
+        }));
+
+        setResults(normalized);
+        setOverallGrade(String(data.overallGrade ?? computeOverallFromResults(normalized)));
+      } else {
+        console.warn('analyze-responses returned unexpected shape, falling back', data);
+        // fallback behavior as above
+        const minimal = (questions || []).map((q, i) => ({
+          question: q,
+          response: (responses && responses[i]) || 'No response provided',
+          grade: 'C',
+          summary: 'No analysis available',
+          pros: [],
+          cons: [],
+        }));
+        setResults(minimal);
+        setOverallGrade('C');
+      }
+    } catch (e) {
+      console.error('Error calling analyze-responses:', e);
+      // fallback minimal
+      const questions = safeRead<string[]>('questions') ?? [];
+      const responses = safeRead<string[]>('responses') ?? [];
+      const minimal = (questions || []).map((q, i) => ({
+        question: q,
+        response: (responses && responses[i]) || 'No response provided',
+        grade: 'C',
+        summary: 'No analysis available',
+        pros: [],
+        cons: [],
+      }));
+      setResults(minimal);
+      setOverallGrade('C');
+    } finally {
+      setIsLoading(false);
+      setAggregateReady(true);
+    }
+  }
+
+  function computeOverallFromResults(items: QuestionResult[]) {
+    const grades = items.map((i) => i.grade?.[0] ?? 'C');
+    return fallbackOverallGrade(grades);
+  }
+
+  // convert letter grades to a final letter (simple average -> letter)
+  function fallbackOverallGrade(grades: string[]) {
+    if (!grades || grades.length === 0) return 'C';
+    const map = (g: string) => {
+      const s = (g ?? 'C').toUpperCase();
+      switch (s[0]) {
+        case 'A':
+          return 4;
+        case 'B':
+          return 3;
+        case 'C':
+          return 2;
+        case 'D':
+          return 1;
+        case 'F':
+          return 0;
+        default:
+          return 2;
+      }
+    };
+    const avg = grades.map(map).reduce((a, b) => a + b, 0) / grades.length;
+    if (avg >= 3.5) return 'A';
+    if (avg >= 2.5) return 'B';
+    if (avg >= 1.5) return 'C';
+    if (avg >= 0.5) return 'D';
+    return 'F';
+  }
+
+useEffect(() => {
+    if (analysisRef.current) return;
+    analysisRef.current = true;
+
+    // If there's already a finalized analysis stored in sessionStorage under 'finalReport', prefer it
+    const finalReport = safeRead<{ overallGrade: string; results: QuestionResult[] }>('finalReport');
+    if (finalReport && Array.isArray(finalReport.results) && finalReport.results.length > 0) {
+      setResults(finalReport.results);
+      setOverallGrade(finalReport.overallGrade ?? computeOverallFromResults(finalReport.results));
+      setPerQuestionReady(true);
+      setAggregateReady(true);
+      setSavedReady(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Kick off the aggregate analysis call
+    callAggregateAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
 useEffect(() => {
@@ -365,6 +576,8 @@ useEffect(() => {
         const errJson = await saveRes.json().catch(() => ({ error: 'save failed' }));
         console.warn('Save report failed:', errJson);
       }
+
+      setSavedReady(true);
     } catch (e) {
       console.warn('Save report error:', e);
     }
@@ -373,7 +586,6 @@ useEffect(() => {
 
   const handleStartSession = () => 
   {
-      // Eventually need to implement a google auth check here
       router.push('/backgroundinfo');
   }
 
@@ -388,7 +600,7 @@ useEffect(() => {
     }
   };
 
-  if (isLoading) {
+  /*if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -397,7 +609,54 @@ useEffect(() => {
         </div>
       </div>
     );
-  }
+  }*/
+
+    const StepCard: React.FC<{ title: string; ready: boolean; description?: string; delay?: number }> = ({ title, ready, description, delay = 0 }) => {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay, duration: 0.35 }}
+          className={`flex items-center gap-3 rounded-xl p-3 border ${ready ? 'border-green-200 bg-green-50' : 'border-slate-100 bg-white'}`}
+        >
+          <div className={`w-3 h-3 rounded-full ${ready ? 'bg-green-500' : 'bg-slate-300'}`} />
+          <div className="flex-1">
+            <div className="text-sm font-medium text-slate-800">{title}</div>
+            <div className="text-xs text-slate-500">{description}</div>
+          </div>
+        </motion.div>
+      );
+    };
+
+
+   if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
+        <div className="max-w-3xl w-full">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-indigo-600">Analyzing responses</h2>
+            <p className="text-sm text-slate-600 mt-2">We're running a few quick steps to produce your report.</p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl shadow-lg p-6 border border-indigo-100">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+              <div>
+                <div className="text-sm text-slate-700 font-medium">{loadingDetail}</div>
+                <div className="text-xs text-slate-400">This should take around 15 seconds depending on your responses.</div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <StepCard title="Per-question analyses" ready={perQuestionReady} description={perQuestionReady ? 'Complete' : 'Running...'} delay={0} />
+              <StepCard title="Aggregate results" ready={aggregateReady} description={aggregateReady ? 'Complete' : 'Processing...'} delay={0.05} />
+              <StepCard title="Save report" ready={savedReady} description={savedReady ? 'Saved' : 'Saving...'} delay={0.1} />
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  } 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">     

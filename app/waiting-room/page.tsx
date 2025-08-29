@@ -22,6 +22,8 @@ export default function WaitingRoomPage() {
   const [popupActionLabel, setPopupActionLabel] = useState('');
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
+  const processingRef = useRef(false);
+
   // readiness flags
   const [questionsReady, setQuestionsReady] = useState(false);
   const [ttsReady, setTtsReady] = useState(false);
@@ -105,6 +107,8 @@ export default function WaitingRoomPage() {
   }, [session, status]);
 
   const startProcessing = async () => {
+    if (processingRef.current) return 
+    processingRef.current = true;
     setIsProcessing(true);
     setQuestionsReady(false);
     setTtsReady(false);
