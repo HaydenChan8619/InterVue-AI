@@ -27,7 +27,7 @@ export default function ResultsPage() {
   const { data: session } = useSession();
   const userId = (session?.user as any)?.user_id ?? null;
 
-  useEffect(() => {
+ /* useEffect(() => {
   const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
   const ANALYSIS_DONE = 'analysis_done';
   const ANALYSIS_RESULT = 'analysis_result';
@@ -180,8 +180,196 @@ export default function ResultsPage() {
       clearTimeout(pollTimer);
     }
   };
-}, [router, userId]);
+}, [router, userId]);*/
 
+// inside your component (replace your useEffect block with this)
+useEffect(() => {
+  const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
+  const ANALYSIS_DONE = 'analysis_done';
+  const ANALYSIS_RESULT = 'analysis_result';
+
+  let pollTimer: number | null = null;
+
+  const loadCachedResult = () => {
+    const raw = sessionStorage.getItem(ANALYSIS_RESULT);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  };
+
+  const waitForDone = (checkInterval = 300, timeout = 15000) =>
+    new Promise<{ results: QuestionResult[]; overallGrade: string } | null>((resolve) => {
+      const start = Date.now();
+      const tick = () => {
+        const done = sessionStorage.getItem(ANALYSIS_DONE);
+        if (done) {
+          const cached = loadCachedResult();
+          resolve(cached);
+          return;
+        }
+        if (Date.now() - start > timeout) {
+          resolve(null);
+          return;
+        }
+        pollTimer = window.setTimeout(tick, checkInterval) as unknown as number;
+      };
+      tick();
+    });
+
+  // single function that ensures same-tab dedupe via a global promise
+  const analyzeOnce = async () => {
+    // if another code path in this window already created the promise, reuse it
+    const globalKey = '__analysisPromise';
+    if ((window as any)[globalKey]) {
+      return (window as any)[globalKey];
+    }
+
+    // Create a promise and attach to window so other mounts reuse it
+    const promise = (async () => {
+      try {
+        const questions = sessionStorage.getItem('questions');
+        const responses = sessionStorage.getItem('responses');
+        const jobDescription = sessionStorage.getItem('jobDescription');
+        const resume = sessionStorage.getItem('resume');
+
+        if (!questions || !responses || !jobDescription || !resume) {
+          // redirect or bail
+          router.push('/');
+          return null;
+        }
+
+        // cached final result?
+        const cachedFinal = loadCachedResult();
+        if (cachedFinal) {
+          return cachedFinal;
+        }
+
+        // If another TAB has an analysis in progress, wait for it (cross-tab)
+        const inProgress = sessionStorage.getItem(ANALYSIS_IN_PROGRESS);
+        if (inProgress) {
+          const waited = await waitForDone();
+          if (waited) return waited;
+          // else timed out -> we'll attempt a new analysis
+        }
+
+        // Start new run
+        const runId = crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random()}`;
+        sessionStorage.setItem(ANALYSIS_IN_PROGRESS, runId);
+
+        // IMPORTANT: include runId in POST so the server can be idempotent if you implement that.
+        const response = await fetch('/api/analyze-responses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            questions: JSON.parse(questions),
+            responses: JSON.parse(responses),
+            jobDescription,
+            resume,
+            clientRunId: runId, // pass runId for server-side dedupe/caching
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to analyze responses');
+
+        const data = await response.json();
+
+        // persist to sessionStorage (so other mounts/tabs use it)
+        try {
+          const payload = { results: data.results, overallGrade: data.overallGrade };
+          sessionStorage.setItem(ANALYSIS_RESULT, JSON.stringify(payload));
+          sessionStorage.setItem(ANALYSIS_DONE, runId);
+        } catch (err) {
+          console.warn('Failed to write analysis cache to sessionStorage', err);
+        } finally {
+          sessionStorage.removeItem(ANALYSIS_IN_PROGRESS);
+        }
+
+        return { results: data.results, overallGrade: data.overallGrade };
+      } catch (err) {
+        // make sure errors propagate but also clean global state
+        throw err;
+      } finally {
+        // leave the promise in place while results are available to reuse;
+        // optionally delete it here to allow new runs later:
+        // delete (window as any)[globalKey];
+      }
+    })();
+
+    (window as any)[globalKey] = promise;
+    return promise;
+  };
+
+  // run it and set state
+  (async () => {
+    try {
+      setIsLoading(true);
+
+      // First check cached result quickly
+      const cached = loadCachedResult();
+      if (cached) {
+        setResults(cached.results);
+        setOverallGrade(cached.overallGrade);
+        setIsLoading(false);
+        return;
+      }
+
+      // Attempt to reuse result across same-tab mounts and across tabs
+      const data = await analyzeOnce();
+
+      if (!data) {
+        // If analyzeOnce returned null (e.g. redirect), bail.
+        return;
+      }
+
+      setResults(data.results);
+      setOverallGrade(data.overallGrade);
+    } catch (error) {
+      console.error('Error analyzing responses:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  })();
+
+  return () => {
+    if (pollTimer) clearTimeout(pollTimer);
+  };
+  // NOTE: keep deps minimal so this runs only once per mount lifecycle.
+  // remove userId from deps to avoid re-running when session resolves.
+}, [router]);
+
+
+useEffect(() => {
+  if (!results?.length || !userId) return;
+
+  (async () => {
+    try {
+      const runId = sessionStorage.getItem('analysis_run_id') ?? undefined; // optional
+      const saveBody = {
+        userId,
+        reportGrade: overallGrade,
+        reportDetails: {
+          results,
+          jobDescription: sessionStorage.getItem('jobDescription'),
+          resume: sessionStorage.getItem('resume'),
+          clientRunId: runId,
+          savedAt: new Date().toISOString(),
+        },
+      };
+
+      const saveRes = await fetch('/api/save-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(saveBody),
+      });
+
+      if (!saveRes.ok) {
+        const errJson = await saveRes.json().catch(() => ({ error: 'save failed' }));
+        console.warn('Save report failed:', errJson);
+      }
+    } catch (e) {
+      console.warn('Save report error:', e);
+    }
+  })();
+}, [results, overallGrade, userId]);
 
   const handleStartSession = () => 
   {
