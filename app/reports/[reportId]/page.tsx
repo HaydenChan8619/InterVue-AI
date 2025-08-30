@@ -158,14 +158,9 @@ export default function ReportDetailPage() {
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'tween', ease: 'easeOut', duration: 0.8, delay: 0.5 }}>
           <div className="bg-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
             <div className="p-6 flex flex-col sm:flex-row gap-4 justify-center">
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => router.back()} className="flex items-center justify-center gap-2 bg-white border border-indigo-300 text-indigo-700 hover:bg-indigo-50 font-medium py-3 px-6 rounded-xl transition-all">
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => router.back()} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all">
                 <Home className="h-5 w-5" />
                 <span>Back to Reports</span>
-              </motion.button>
-
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-6 rounded-xl shadow-lg shadow-indigo-200 transition-all" onClick={() => window.print()}>
-                <Download className="h-5 w-5" />
-                <span>Print</span>
               </motion.button>
             </div>
           </div>

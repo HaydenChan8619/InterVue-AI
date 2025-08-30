@@ -65,6 +65,8 @@ Also, don't base your questions strictly on the job descriptions. Interviewers o
 Specifically, please ensure your first question is an introductionary question. If they have something relevant from their resume, ask them to elaborate on that specific aspect. If not, then start with a generic "Why us" question.
 The second and third question should be scenario questions about scenarios that the person could face at the job, for example how to deal with deadlines, speaking up during meetings, sharing ideas, etc. regular work scenarios. No need to get technical here as those questions come later
 The fourth and fifth question should be catered towards the position, including asking questions regarding domain knowledge relevant to the job.
+When asking for examples of work, don't specifically ask for examples with that specific technology, keep it more open, you ask it in a way that the specific technology can be used to answer the question, but it isn't the only answer.
+For example, if you're looking for Restful API usage experience, you can ask for Restful API or other similar API experience.
 Ensure the questions are concise, maintain the word count between 20 - 30.`;
 
     const threeQuestionSpecifics = `You are an expert interview coach.
@@ -78,6 +80,8 @@ Also, don't base your questions strictly on the job descriptions. Interviewers o
 Specifically, please ensure your first question is an introductionary question. If they have something relevant from their resume, ask them to elaborate on that specific aspect. If not, then start with a generic "Why us" question.
 The second question should be scenario questions about scenarios that the person could face at the job, for example how to deal with deadlines, speaking up during meetings, sharing ideas, etc. regular work scenarios. No need to get technical here as those questions come later
 The third question should be catered towards the position, including asking questions regarding domain knowledge relevant to the job.
+When asking for examples of work, don't specifically ask for examples with that specific technology, keep it more open, you ask it in a way that the specific technology can be used to answer the question, but it isn't the only answer.
+For example, if you're looking for Restful API usage experience, you can ask for Restful API or other similar API experience.
 Ensure the questions are concise, maintain the word count between 20 - 30.`
 
     const oneQuestionSepcifics = `You are an expert interview coach.
@@ -88,6 +92,8 @@ Ensure the questions are concise, maintain the word count between 20 - 30.`
     keep in mind the level of experience the role and the resume calls for, don't ask the applicant industry verteran situational questions if the applicant is a high school / university student
     Also, don't base your questions strictly on the job descriptions. Interviewers often ask questions about the bigger picture, such as what the company does, or how the applicant handles different dynamics in the workplace
     Please ensure your question is relelvant to their resume and is a scenario questions about scenarios that the person could face at the job, for example how to deal with deadlines, speaking up during meetings, sharing ideas, etc. regular work scenarios. No need to get technical here.
+    When asking for examples of work, don't specifically ask for examples with that specific technology, keep it more open, you ask it in a way that the specific technology can be used to answer the question, but it isn't the only answer.
+    For example, if you're looking for Restful API usage experience, you can ask for Restful API or other similar API experience.
     Ensure the questions are concise, maintain the word count between 20 - 30.`
 
     const systemPrompt = questionCount == 5 ? fiveQuestionSpecifics : (questionCount == 3 ? threeQuestionSpecifics : oneQuestionSepcifics);
