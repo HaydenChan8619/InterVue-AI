@@ -64,7 +64,7 @@ function tryExtractJsonFromString(s: string): any | null {
   return null;
 }
 
-async function callOpenAIAnalysis(prompt: string, maxTokens = 800): Promise<any> {
+async function callOpenAIAnalysis(prompt: string, maxTokens = 5000): Promise<any> {
   const resp = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
@@ -125,7 +125,7 @@ ${question}
 Candidate Response:
 ${answer}
 
-For this single question, return ONLY valid JSON and nothing else, with the exact shape:
+return ONLY valid JSON and nothing else, with the exact shape:
 {
   "question": "....",
   "response": "....",
@@ -135,8 +135,11 @@ For this single question, return ONLY valid JSON and nothing else, with the exac
   "cons": ["...","..."]
 }
 
-Keep summary concise (1-2 sentences). Provide 2 pros and 2 cons if reasonable.
-    `;
+Keep summary concise (1-2 sentences). Provide 3 pros and 3 cons if reasonable.
+
+When analyzing, keep in mind how long the response is. The ideal is 75 - 225 words for introductory questions, and between 450 to 600 words for behavioral questions. If it's a little bit far it's fine, but significant difference from this target should be reflected as a con.
+Also, don't force pros if there is none. the user saying he doesn't know should not be spinned into a pro since he is candid. A non-answer should not be a pro. If there is not enough to talk about, list "N/A" as the pro or con.
+`;
 
     // Call OpenAI
     const openaiData = await callOpenAIAnalysis(analysisPrompt, 10000);
