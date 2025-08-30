@@ -143,7 +143,8 @@ export default function BackgroundInfoClient() {
       'analysis_key',
       'questions',
       'responses',
-      'analyses'
+      'analyses',
+      'save_report'
     ];
     keysToClear.forEach(k => sessionStorage.removeItem(k));
   } catch (err) {

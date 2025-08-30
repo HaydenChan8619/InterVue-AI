@@ -503,6 +503,7 @@ useEffect(() => {
 
 useEffect(() => {
   if (!results?.length || !userId) return;
+  if (sessionStorage.getItem('save_report')) return;
 
   (async () => {
     try {
@@ -530,6 +531,7 @@ useEffect(() => {
         console.warn('Save report failed:', errJson);
       }
 
+      sessionStorage.setItem('save_report','complete');
       setSavedReady(true);
     } catch (e) {
       console.warn('Save report error:', e);
