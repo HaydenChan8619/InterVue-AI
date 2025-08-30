@@ -375,123 +375,76 @@ async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
   }
 
   async function callAggregateAnalysis() {
-    try {
-      // read base inputs from storage
-      const questions = safeRead<string[]>('questions') ?? [];
-      const responses = safeRead<string[]>('responses') ?? [];
-      const jobDescription = sessionStorage.getItem('jobDescription') ?? '';
-      const resume = sessionStorage.getItem('resume') ?? '';
+  try {
+    // read base inputs from storage
+    const questions = safeRead<string[]>('questions') ?? [];
+    const responses = safeRead<string[]>('responses') ?? [];
 
-      // Prefer per-question analyses if available — wait briefly for in-flight ones.
-      const partialAnalyses = (await waitForAnalyses()) ?? [];
+    // Wait for per-question analyses to finish (or timeout returning whatever we have)
+    const analyses = (await waitForAnalyses()) ?? [];
+    console.log('analyses length', analyses.length);
+    console.log('are all refs identical?', analyses.length > 0 && analyses.every(a => a === analyses[0]));
+    console.log('analyses snapshot', analyses.map(a => ({ q: a?.question, r: a?.response })));
 
-      // Build payload. Include partialAnalyses as an optional field for future server use.
-      const payload = {
-        questions,
-        responses,
-        jobDescription,
-        resume,
-        partialAnalyses,
-        clientRunId: sessionStorage.getItem('clientRunId') ?? undefined,
-      };
+    // Normalize each analysis (fill gaps with sensible defaults)
+    const normalized: QuestionResult[] = (questions.length > 0 ? questions : analyses.map((_, i) => `Question ${i + 1}`))
+      .map((q, i) => {
+        const a = analyses[i] as QuestionResult | null | undefined;
+        if (a) {
+          return {
+            question: String(a.question ?? q),
+            response: String(a.response ?? (responses[i] ?? 'No response provided')),
+            grade: String(a.grade ?? 'C').slice(0, 1).toUpperCase(),
+            summary: String(a.summary ?? ''),
+            pros: Array.isArray(a.pros) ? a.pros.map(String) : [],
+            cons: Array.isArray(a.cons) ? a.cons.map(String) : [],
+          } as QuestionResult;
+        }
 
-      const res = await fetch('/api/analyze-responses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        // If this analysis is missing, produce a safe fallback item
+        return {
+          question: q,
+          response: responses[i] ?? 'No response provided',
+          grade: 'C',
+          summary: 'No analysis available',
+          pros: [],
+          cons: [],
+        } as QuestionResult;
       });
 
-      const data = await res.json().catch(() => null);
+    // Save into state and mark per-question ready
+    setResults(normalized);
+    setPerQuestionReady(true);
 
-      if (!res.ok) {
-        console.warn('analyze-responses returned non-OK', data);
-        // Fallback: try to build results from partialAnalyses (if any), else from raw responses
-        if (partialAnalyses && partialAnalyses.length) {
-          const built = partialAnalyses
-            .map((p, i) =>
-              p
-                ? p
-                : {
-                    question: questions[i] ?? `Question ${i + 1}`,
-                    response: responses[i] ?? 'No response provided',
-                    grade: 'C',
-                    summary: 'No detailed analysis available',
-                    pros: [],
-                    cons: [],
-                  }
-            )
-            .filter(Boolean) as QuestionResult[];
-          setResults(built);
-          // crude overall grade fallback: take average of letter -> map to numeric
-          const avgGrade = fallbackOverallGrade(built.map((b) => b.grade));
-          setOverallGrade(avgGrade);
-          setIsLoading(false);
+    // Compute overall grade from per-question grades
+    const overall = computeOverallFromResults(normalized);
+    setOverallGrade(overall);
 
-          return;
-        }
-        // Last resort: populate minimal entries
-        const minimal = (questions || []).map((q, i) => ({
-          question: q,
-          response: (responses && responses[i]) || 'No response provided',
-          grade: 'C',
-          summary: 'No analysis available',
-          pros: [],
-          cons: [],
-        }));
-        setResults(minimal);
-        setOverallGrade('C');
-        setIsLoading(false);
-        return;
-      }
+    // Mark aggregate ready (we've compiled the report locally)
+    setAggregateReady(true);
+  } catch (e) {
+    console.error('Error compiling per-question analyses:', e);
 
-      // Expect server to return the JSON in the shape { overallGrade, results }
-      if (data && data.results && Array.isArray(data.results)) {
-        // Coerce/normalize items to QuestionResult
-        const normalized: QuestionResult[] = data.results.map((r: any) => ({
-          question: String(r.question ?? ''),
-          response: String(r.response ?? ''),
-          grade: String(r.grade ?? 'C').slice(0, 1).toUpperCase(),
-          summary: String(r.summary ?? ''),
-          pros: Array.isArray(r.pros) ? r.pros.map(String) : [],
-          cons: Array.isArray(r.cons) ? r.cons.map(String) : [],
-        }));
-
-        setResults(normalized);
-        setOverallGrade(String(data.overallGrade ?? computeOverallFromResults(normalized)));
-      } else {
-        console.warn('analyze-responses returned unexpected shape, falling back', data);
-        // fallback behavior as above
-        const minimal = (questions || []).map((q, i) => ({
-          question: q,
-          response: (responses && responses[i]) || 'No response provided',
-          grade: 'C',
-          summary: 'No analysis available',
-          pros: [],
-          cons: [],
-        }));
-        setResults(minimal);
-        setOverallGrade('C');
-      }
-    } catch (e) {
-      console.error('Error calling analyze-responses:', e);
-      // fallback minimal
-      const questions = safeRead<string[]>('questions') ?? [];
-      const responses = safeRead<string[]>('responses') ?? [];
-      const minimal = (questions || []).map((q, i) => ({
-        question: q,
-        response: (responses && responses[i]) || 'No response provided',
-        grade: 'C',
-        summary: 'No analysis available',
-        pros: [],
-        cons: [],
-      }));
-      setResults(minimal);
-      setOverallGrade('C');
-    } finally {
-      setIsLoading(false);
-      setAggregateReady(true);
-    }
+    // Fallback: populate minimal results so UI still shows something
+    const questions = safeRead<string[]>('questions') ?? [];
+    const responses = safeRead<string[]>('responses') ?? [];
+    const minimal = (questions || []).map((q, i) => ({
+      question: q,
+      response: responses[i] ?? 'No response provided',
+      grade: 'C',
+      summary: 'No analysis available',
+      pros: [],
+      cons: [],
+    }));
+    setResults(minimal);
+    setOverallGrade(fallbackOverallGrade(minimal.map((m) => m.grade)));
+    setPerQuestionReady(true);
+    setAggregateReady(true);
+  } finally {
+    setIsLoading(false);
   }
+}
+
 
   function computeOverallFromResults(items: QuestionResult[]) {
     const grades = items.map((i) => i.grade?.[0] ?? 'C');

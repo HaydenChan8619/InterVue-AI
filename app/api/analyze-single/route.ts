@@ -98,7 +98,11 @@ export async function POST(req: NextRequest) {
 
     // Build a simple cache key: prefer clientRunId if provided, else plain payload-based key.
     // This removes the crypto hash and uses readable keys instead.
-    const key = clientRunId ? `clientRun:${clientRunId}` : `payload:${question}||${String(answer)}`;
+    //const key = clientRunId ? `clientRun:${clientRunId}` : `payload:${question}||${String(answer)}`;
+    const snippet = (s: string) => s.slice(0, 200); // keep keys bounded
+    const key = clientRunId
+      ? `clientRun:${clientRunId}::q:${snippet(question)}::a:${snippet(String(answer))}`
+      : `payload:${question}||${String(answer)}`;
 
     // quick cache hit
     if (analysisCache.has(key)) {

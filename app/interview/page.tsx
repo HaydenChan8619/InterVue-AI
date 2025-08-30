@@ -195,7 +195,6 @@ export default function InterviewPage() {
     sessionStorage.setItem('analyses', JSON.stringify(arr));
   }
 
-  // send analysis to API with small retry/backoff and fallback
   async function sendAnalysis(
     question: string,
     answer: string,
@@ -228,10 +227,8 @@ export default function InterviewPage() {
           throw new Error(`API error ${resp.status}`);
         }
 
-        // expected shape is Analysis (see your server code)
         const analysisCandidate = (data as any) ?? null;
 
-        // basic validation of returned object; fallback to null if shape unexpected
         if (
           analysisCandidate &&
           typeof analysisCandidate.question === 'string' &&
@@ -246,23 +243,19 @@ export default function InterviewPage() {
             pros: Array.isArray(analysisCandidate.pros) ? analysisCandidate.pros.map(String) : [],
             cons: Array.isArray(analysisCandidate.cons) ? analysisCandidate.cons.map(String) : [],
           };
-          // persist
           writeAnalysisToStorage(index, analysis);
           return analysis;
         } else {
-          // unexpected shape — keep trying a bit (or fallback)
           lastError = { reason: 'bad_shape', data };
           throw new Error('Unexpected analysis shape');
         }
       } catch (err) {
         lastError = err;
         attempt++;
-        // small backoff
         await new Promise((res) => setTimeout(res, 200 * attempt));
       }
     }
 
-    // all retries failed -> store fallback analysis so results page has something
     console.warn('sendAnalysis failed after retries for index', index, 'lastError', lastError);
     const fallback: Analysis = {
       question,
@@ -277,51 +270,37 @@ export default function InterviewPage() {
   }
 
   const handleQuestionComplete = async (responseText: string) => {
-    // capture index/question before mutating state
     const questionIndex = currentQuestion;
     const questionText = questions[questionIndex];
 
-    // persist responses locally
     const newResponses = [...responses, responseText];
     setResponses(newResponses);
     sessionStorage.setItem('responses', JSON.stringify(newResponses));
 
-    const isLast = questionIndex + 1 >= questions.length;
-
-    // call analysis
+    // start analysis (but DO NOT await if we want to navigate immediately)
     const analysisPromise = sendAnalysis(questionText, responseText, questionIndex);
-    // store the pending promise so other pages/components can inspect/wait if needed
     pendingAnalysesRef.current.set(questionIndex, analysisPromise);
 
-    if (!isLast) {
-      // fire-and-forget for intermediate questions (user moves on immediately)
-      analysisPromise
-        .catch((e) => {
-          // already handled inside sendAnalysis; avoid unhandled rejections
-          console.warn('analysis failed for index', questionIndex, e);
-        })
-        .finally(() => {
-          // remove from pending once done
-          pendingAnalysesRef.current.delete(questionIndex);
-        });
+    // ensure we clean up the pending promise when it's finished
+    analysisPromise
+      .catch((e) => {
+        console.warn('analysis failed for index', questionIndex, e);
+      })
+      .finally(() => {
+        pendingAnalysesRef.current.delete(questionIndex);
+      });
 
-      // move to next question immediately for snappy UX
+    const isLast = questionIndex + 1 >= questions.length;
+
+    if (!isLast) {
+      // move to next question immediately
       setCurrentQuestion((s) => s + 1);
     } else {
-      // final question: await analysis before navigating so results page has final analysis available
-      try {
-        await analysisPromise;
-      } catch (e) {
-        // errors already result in fallback stored in sessionStorage by sendAnalysis
-        console.warn('final analysis error (proceeding to results)', e);
-      } finally {
-        pendingAnalysesRef.current.delete(questionIndex);
-      }
-
-      // at this point the last analysis has been stored; navigate to results
+      // push to results immediately; results page will wait for analyses if needed
       router.push('/results');
     }
   };
+
 
   if (isLoading) {
     return (
