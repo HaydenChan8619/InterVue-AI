@@ -501,7 +501,7 @@ async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
   // convert letter grades to a final letter (simple average -> letter)
   function fallbackOverallGrade(grades: string[]) {
     if (!grades || grades.length === 0) return 'C';
-    const map = (g: string) => {
+    const map = (g: string): number => {
       const s = (g ?? 'C').toUpperCase();
       switch (s[0]) {
         case 'A':

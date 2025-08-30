@@ -190,6 +190,7 @@ Keep summary concise (1-2 sentences). Provide 2 pros and 2 cons if reasonable.
         const it = analysisCache.keys();
         while (analysisCache.size > MAX_CACHE) {
           const k = it.next().value;
+          if (k === undefined) break;
           analysisCache.delete(k);
         }
       }
