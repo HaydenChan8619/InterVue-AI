@@ -102,7 +102,7 @@ export default function BuyCreditsPage() {
           <motion.div
             variants={fadeUp} className="text-center mb-12"
           >
-            <h1 className="text-4xl font-bold text-slate-800 mb-4">Unlock Your Interview Potential</h1>
+            <h1 className="text-4xl font-bold text-indigo-600 mb-4">Unlock Your Interview Potential</h1>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               Purchase AI interview credits and practice with our advanced interview simulator
             </p>
@@ -220,11 +220,11 @@ export default function BuyCreditsPage() {
                         </svg>
                         Report History
                       </li>
-                      <li className="flex items-center text-sm text-slate-600">
+                      <li className="flex items-center text-sm text-gray-400">
                         <svg className="w-4 h-4 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Performance Analytics
+                        Performance Analytics (Coming Soon)
                       </li>
                     </>
                   ) : (
@@ -241,11 +241,11 @@ export default function BuyCreditsPage() {
                         </svg>
                         Report History
                       </li>
-                      <li className="flex items-center text-sm text-slate-600">
+                      <li className="flex items-center text-sm text-gray-400">
                         <svg className="w-4 h-4 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        Performance Analytics
+                        Performance Analytics (Coming Soon)
                       </li>
                       <li className="flex items-center text-sm text-slate-600">
                         <svg className="w-4 h-4 text-indigo-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

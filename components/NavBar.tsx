@@ -69,7 +69,7 @@ const NavBar = () => {
           <div className="rounded-lg p-1 bg-white/0 transition-transform duration-200 hover:scale-105">
             <Image src="/logo.png" width={40} height={40} alt="InterVue AI Logo" className="pt-2" />
           </div>
-          <span className="text-xl font-bold text-indigo-900">InterVue AI</span>
+          <span className="text-xl font-bold text-indigo-600">InterVue AI</span>
         </div>
 
         {/* Middle: optional nav links (hidden on small screens) */}

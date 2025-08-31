@@ -17,7 +17,7 @@ export default function BackgroundInfoClient() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeText, setResumeText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [numQuestions, setNumQuestions] = useState(3);
+  const [numQuestions, setNumQuestions] = useState(5);
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -373,7 +373,7 @@ export default function BackgroundInfoClient() {
         </div>
 
         {/* Number of Questions Card */}
-        <motion.div
+        {/*<motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ 
@@ -405,7 +405,7 @@ export default function BackgroundInfoClient() {
               </select>
             </div>
           </div>
-        </motion.div>
+        </motion.div>*/}
 
 
         {/* Start Button Card */}
