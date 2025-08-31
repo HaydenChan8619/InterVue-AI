@@ -9,8 +9,8 @@ import DisableScrollRestoration from '@/components/DisableScrollRestoration';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'InterVue AI',
-  description: 'Ace your next interview with our AI interview and analysis.',
+  title: "InterVue AI",  
+  description: 'Ace your next interview with our AI-powered Mock interview and detailed analysis.',
 };
 
 export default function RootLayout({
