@@ -35,7 +35,6 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      // include relevant metadata so webhook can fulfill
       metadata: {
         packageId: packageId,
         credits: String(credits),

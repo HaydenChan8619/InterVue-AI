@@ -6,7 +6,6 @@ const LandingCallToAction = () => {
     
     const handleStartSession = () => 
     {
-        // Eventually need to implement a google auth check here
         router.push('/backgroundinfo');
     }
 
@@ -32,7 +31,6 @@ const LandingCallToAction = () => {
             type: "tween",
             ease: "easeInOut",
             duration: 0.5,
-            //delay: 0.2
           }}
         >
           Ready to Ace Your Next Interview?
@@ -46,7 +44,6 @@ const LandingCallToAction = () => {
             type: "tween",
             ease: "easeInOut",
             duration: 0.5,
-            //delay: 0.3
           }}
         >
           Join thousands of job seekers who have transformed their interview skills with InterVue AI.
@@ -80,7 +77,6 @@ const LandingCallToAction = () => {
             type: "tween",
             ease: "easeInOut",
             duration: 0.5,
-            //delay: 0.5
           }}
         >
           No payment required to start.

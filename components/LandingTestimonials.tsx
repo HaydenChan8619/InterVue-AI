@@ -54,7 +54,6 @@ const LandingTestimonials = () => {
               type: "tween",
               ease: "easeInOut",
               duration: 0.5,
-              //delay: 0.1
             }}
           >
             Hear what our users say about their interview success
@@ -73,7 +72,6 @@ const LandingTestimonials = () => {
                 type: "tween",
                 ease: "easeInOut",
                 duration: 0.5,
-                //delay: index * 0.15
               }}
             >
               <div className="flex items-center mb-6">

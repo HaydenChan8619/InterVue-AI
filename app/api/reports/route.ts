@@ -10,7 +10,6 @@ const supabaseAdmin = createClient(
 
 export async function GET(request: Request) {
   try {
-    // read NextAuth token from cookie
     const token = await getToken({ req: request as any, secret: process.env.NEXTAUTH_SECRET });
     if (!token || !token.email) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -18,7 +17,6 @@ export async function GET(request: Request) {
 
     const email = token.email as string;
 
-    // find user_id in users table
     const { data: userRow, error: userError } = await supabaseAdmin
       .from('users')
       .select('user_id')
@@ -35,7 +33,6 @@ export async function GET(request: Request) {
 
     const userId = userRow.user_id;
 
-    // fetch reports for this user
     const { data, error } = await supabaseAdmin
       .from('reports')
       .select('report_id, created_at, report_grade, report_details')

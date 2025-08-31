@@ -18,17 +18,16 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [countdown, setCountdown] = useState<number | null>(null); // 3-second read countdown
+  const [countdown, setCountdown] = useState<number | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const timerRef = useRef<number | null>(null); // recording timer (seconds)
-  const countdownIntervalRef = useRef<number | null>(null); // countdown timer id
-  const mountedRef = useRef<boolean>(true); // avoid setState on unmounted when processing in background
+  const timerRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null); 
+  const mountedRef = useRef<boolean>(true);
 
   const audioElRef = useRef<HTMLAudioElement | null>(null);
-  // Track mount/unmount to prevent state updates after unmount
   useEffect(() => {
     mountedRef.current = true;
     resetForNewQuestion();
@@ -47,37 +46,31 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
     if (audioSrc) {
       playTtsThenRecord(audioSrc);
     } else {
-      // fallback to 3-second read countdown
       startCountdown(3);
     }
   };
 
     const cleanupEverything = () => {
-    // recording timer
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    // countdown interval
     if (countdownIntervalRef.current) {
       window.clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
-    // stop mediaRecorder
     if (mediaRecorderRef.current) {
       try {
         if (mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
       } catch (e) {}
       mediaRecorderRef.current = null;
     }
-    // stop media tracks
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach(t => t.stop());
       } catch (e) {}
       streamRef.current = null;
     }
-    // stop audio playback
     if (audioElRef.current) {
       try {
         audioElRef.current.pause();
@@ -91,7 +84,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
   };
 
   const startCountdown = (secs = 3) => {
-    // clear any existing countdown
     if (countdownIntervalRef.current) {
       window.clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -103,13 +95,11 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
       setCountdown(prev => {
         if (prev === null) return null;
         if (prev <= 1) {
-          // finished countdown
           if (countdownIntervalRef.current) {
             window.clearInterval(countdownIntervalRef.current);
             countdownIntervalRef.current = null;
           }
           setCountdown(null);
-          // start recording after countdown
           startRecording();
           return null;
         }
@@ -119,17 +109,14 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
   };
 
   const playTtsThenRecord = (src: string) => {
-    // create audio element
     const audio = new Audio(src);
     audio.preload = 'auto';
     audioElRef.current = audio;
 
-    // when metadata loaded, set initial countdown to Math.ceil(duration)
     audio.addEventListener('loadedmetadata', () => {
       const duration = isFinite(audio.duration) ? Math.ceil(audio.duration) : null;
       if (duration) {
         setCountdown(duration);
-        // also start a per-second UI tick to show remaining seconds
         if (countdownIntervalRef.current) {
           window.clearInterval(countdownIntervalRef.current);
           countdownIntervalRef.current = null;
@@ -148,12 +135,10 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
           });
         }, 1000);
       } else {
-        // if no duration available, show null until ended
         setCountdown(null);
       }
     });
 
-        // when audio finishes, clear countdown and start recording
     audio.addEventListener('ended', () => {
       setCountdown(null);
       startRecording();
@@ -161,17 +146,14 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
 
     audio.addEventListener('error', (e) => {
       console.warn('Audio playback error, fallback to 3s countdown', e);
-      // fallback to 3s countdown
       startCountdown(3);
     });
 
-    // Try to play. If autoplay blocked, fall back to asking user to click (or run 3s countdown)
     (async () => {
       try {
         await audio.play();
       } catch (err) {
         console.warn('Autoplay blocked or playback failed, falling back to countdown', err);
-        // fallback to 3-second countdown so user can start
         startCountdown(3);
       }
     })();
@@ -180,7 +162,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
   const startRecording = async () => {
     if (isRecording) return;
 
-    // ensure previous things are cleared
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
@@ -202,11 +183,9 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
         }
       };
 
-      // When recording stops we create the blob and upload automatically
       mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         setAudioBlob(blob);
-        // Fire-and-forget upload; allow parent to move on while we process
         void uploadBlob(blob);
       };
 
@@ -214,7 +193,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
       setIsRecording(true);
       setRecordingTime(0);
 
-      // start per-second recording timer
       timerRef.current = window.setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
@@ -229,11 +207,10 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
       try {
         mediaRecorderRef.current.stop();
       } catch (e) {
-        // ignore
+
       }
     }
 
-    // clear the visual timer here; onstop will handle upload
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
@@ -241,7 +218,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
 
     setIsRecording(false);
 
-    // stop tracks (on some browsers stopping mediaRecorder stops them but ensure)
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach(t => t.stop());
@@ -253,7 +229,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
   };
 
   const uploadBlob = async (blob: Blob) => {
-    // mark processing but DO NOT block UI; parent can move to next question
     if (mountedRef.current) setIsProcessing(true);
     try {
       const formData = new FormData();
@@ -268,10 +243,8 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
 
       const { text } = await response.json();
 
-      // Pass transcription up even if this component has unmounted
       onComplete(text);
 
-      // Reset local state only if still mounted; DO NOT auto-start next countdown here
       if (mountedRef.current) {
         setAudioBlob(null);
         audioChunksRef.current = [];
@@ -281,7 +254,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
     } catch (error) {
       console.error('Error transcribing audio:', error);
       if (mountedRef.current) {
-        // surface an error result but don't block progression
         onComplete('Failed to transcribe audio');
       }
     } finally {
@@ -298,7 +270,6 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
 return (
     
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.7 }}>
-      {/* Recording Status */}
       <Card className="bg-white/80 backdrop-blur-sm border border-indigo-100 shadow-sm">
         <CardContent className="p-6">
           <div className="flex flex-col items-center justify-center space-y-3">
@@ -343,7 +314,6 @@ return (
         </CardContent>
       </Card>
 
-      {/* Question card */}
       <Card className="bg-white border border-indigo-100 shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold text-indigo-600">Question {questionNumber}</CardTitle>
@@ -355,7 +325,6 @@ return (
         </CardContent>
       </Card>
 
-      {/* Controls */}
       <Card className="bg-white/60 backdrop-blur-sm border border-indigo-100 shadow-sm">
         <CardContent className="p-6">
           <div className="flex justify-center">

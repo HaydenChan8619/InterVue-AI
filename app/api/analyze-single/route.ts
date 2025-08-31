@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Note: no crypto import anymore
-
 type Analysis = {
   question: string;
   response: string;
@@ -11,13 +9,10 @@ type Analysis = {
   cons: string[];
 };
 
-// Simple in-memory per-process cache to avoid duplicate work for same clientRunId or same payload.
-// NOTE: This is only per-server-process (warm instance). It's still useful for dedupe.
-// Attach to globalThis to persist across hot-reloads in dev.
+
 const GLOBAL_CACHE_KEY = '__ANALYZE_SINGLE_CACHE_v1' as const;
 const analysisCache: Map<string, Analysis> = (globalThis as any)[GLOBAL_CACHE_KEY] ?? ((globalThis as any)[GLOBAL_CACHE_KEY] = new Map());
 
-/* --- robust helpers copied/adapted from your previous code --- */
 function getOutputTextFromResponse(data: any): string | undefined {
   if (!data) return undefined;
   if (typeof data.output_text === 'string') return data.output_text;
@@ -44,21 +39,19 @@ function getOutputTextFromResponse(data: any): string | undefined {
 
 function tryExtractJsonFromString(s: string): any | null {
   if (!s || typeof s !== 'string') return null;
-  try { return JSON.parse(s); } catch (e) { /* ignore */ }
+  try { return JSON.parse(s); } catch (e) { }
 
-  // Try to find the largest {...} block
   const jsonRegex = /({[\s\S]*})/;
   const match = s.match(jsonRegex);
   if (match) {
     const candidate = match[1];
-    try { return JSON.parse(candidate); } catch { /* ignore */ }
+    try { return JSON.parse(candidate); } catch { }
   }
 
-  // fenced json
   const fencedJson = /```json\s*([\s\S]*?)```/i;
   const fmatch = s.match(fencedJson);
   if (fmatch) {
-    try { return JSON.parse(fmatch[1]); } catch { /* ignore */ }
+    try { return JSON.parse(fmatch[1]); } catch { }
   }
 
   return null;
@@ -80,7 +73,6 @@ async function callOpenAIAnalysis(prompt: string, maxTokens = 5000): Promise<any
 
   const data = await resp.json().catch(() => null);
   if (!resp.ok) {
-    // include returned data for debugging in server logs (not returned to client)
     console.error('OpenAI /responses error', resp.status, data);
     throw new Error(`OpenAI API error: ${resp.status}`);
   }
@@ -96,20 +88,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing question or response' }, { status: 400 });
     }
 
-    // Build a simple cache key: prefer clientRunId if provided, else plain payload-based key.
-    // This removes the crypto hash and uses readable keys instead.
-    //const key = clientRunId ? `clientRun:${clientRunId}` : `payload:${question}||${String(answer)}`;
-    const snippet = (s: string) => s.slice(0, 200); // keep keys bounded
+    const snippet = (s: string) => s.slice(0, 200); 
     const key = clientRunId
       ? `clientRun:${clientRunId}::q:${snippet(question)}::a:${snippet(String(answer))}`
       : `payload:${question}||${String(answer)}`;
 
-    // quick cache hit
     if (analysisCache.has(key)) {
       return NextResponse.json(analysisCache.get(key));
     }
 
-    // Prepare a focused prompt that requests JSON-only output
     const analysisPrompt = `
 You are an expert interview coach and hiring manager. Analyze a single interview question and the candidate's response.
 
@@ -141,10 +128,8 @@ When analyzing, keep in mind how long the response is. The ideal is 75 - 225 wor
 Also, don't force pros if there is none. the user saying he doesn't know should not be spinned into a pro since he is candid. A non-answer should not be a pro. If there is not enough to talk about, list "N/A" as the pro or con.
 `;
 
-    // Call OpenAI
     const openaiData = await callOpenAIAnalysis(analysisPrompt, 10000);
 
-    // Extract text and attempt to parse JSON
     const outputText = getOutputTextFromResponse(openaiData);
     let analysis: Analysis | null = null;
 
@@ -163,10 +148,7 @@ Also, don't force pros if there is none. the user saying he doesn't know should 
       console.warn(JSON.stringify(openaiData, null, 2));
     }
 
-    // If parsing failed produce a safe fallback but still attempt best-effort mapping
     if (!analysis) {
-      // try to build something from the raw response if possible
-      // fallback: grade C and minimal pros/cons
       analysis = {
         question,
         response: answer,
@@ -176,7 +158,6 @@ Also, don't force pros if there is none. the user saying he doesn't know should 
         cons: ['Analysis could not be parsed'],
       };
     } else {
-      // Ensure the object has the expected fields and types
       analysis = {
         question: String(analysis.question ?? question),
         response: String(analysis.response ?? answer),
@@ -187,13 +168,10 @@ Also, don't force pros if there is none. the user saying he doesn't know should 
       };
     }
 
-    // Cache result (in-memory per-process)
     try {
       analysisCache.set(key, analysis);
-      // Keep cache bounded: remove older entries if map grows too large
       const MAX_CACHE = 200;
       if (analysisCache.size > MAX_CACHE) {
-        // simple eviction: drop first inserted keys until size acceptable
         const it = analysisCache.keys();
         while (analysisCache.size > MAX_CACHE) {
           const k = it.next().value;

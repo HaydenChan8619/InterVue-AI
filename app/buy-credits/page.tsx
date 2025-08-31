@@ -9,8 +9,8 @@ import { Variants } from "framer-motion";
 type Package = {
   id: string;
   label: string;
-  price: string; // "3.00"
-  displayPrice: string; // "$3"
+  price: string;
+  displayPrice: string;
   credits: number;
   subtitle?: string;
 };
@@ -31,7 +31,7 @@ const fadeUp: Variants = {
     opacity: 1,
     y: 0,
     transition: {
-      type: "tween",   // ✅ valid type
+      type: "tween",
       ease: "easeOut",
       duration: 0.8,
     },
@@ -52,7 +52,6 @@ export default function BuyCreditsPage() {
   const [doneAnimations, setDoneAnimations] = useState<boolean[]>(() => Array(PACKAGES.length).fill(false));
 
   useEffect(() => {
-    // Ensure doneAnimations length matches PACKAGES length
     setDoneAnimations((prev) => (prev.length === PACKAGES.length ? prev : Array(PACKAGES.length).fill(false)));
   }, []);
 
@@ -93,7 +92,6 @@ export default function BuyCreditsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
       <div className="max-w-6xl mx-auto pt-32 pb-16">
-        {/* Header with entrance animation */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -108,7 +106,6 @@ export default function BuyCreditsPage() {
             </p>
           </motion.div>
 
-        {/* Packages grid - each card animates simultaneously (no stagger) */}
           <motion.div variants={fadeUp} className="grid md:grid-cols-3 gap-8 mb-12">
           {PACKAGES.map((p, idx) => {
             const isSelected = selected.id === p.id;
@@ -116,19 +113,16 @@ export default function BuyCreditsPage() {
             return (
               <motion.div
                 key={p.id}
-                // keep initial scale identical to final scale to prevent transform jumps
                 initial={{ opacity: 0, y: 20, scale: 1 }}
                 animate={{
                   opacity: 1,
                   y: 0,
                   scale: isSelected ? 1.02 : 1,
                 }}
-                // pick transition based on whether the initial entrance finished
                 transition={doneAnimations[idx]
-                  ? { type: 'tween', ease: 'easeOut', duration: 0.2 } // normal / off-hover transition
-                  : { type: 'tween', ease: 'easeOut', duration: 0.8 } // initial entrance transition
+                  ? { type: 'tween', ease: 'easeOut', duration: 0.2 } 
+                  : { type: 'tween', ease: 'easeOut', duration: 0.8 } 
                 }
-                // hover uses its own short transition (0.2s)
                 whileHover={
                   doneAnimations[idx]
                     ? {
@@ -139,12 +133,11 @@ export default function BuyCreditsPage() {
                       }
                     : {}
                 }
-                // tap uses a quick transition as well
+  
                 whileTap={{ scale: isSelected ? 0.995 : 0.98, transition: { duration: 0.12 } }}
                 onAnimationComplete={() => {
-                  // when the entrance animation finishes, mark this card as "entered"
                   setDoneAnimations((prev) => {
-                    if (prev[idx]) return prev; // already set — avoid needless updates
+                    if (prev[idx]) return prev; 
                     const next = [...prev];
                     next[idx] = true;
                     return next;
@@ -159,7 +152,6 @@ export default function BuyCreditsPage() {
                 style={{ willChange: 'transform, opacity, filter' }}
               >
 
-                {/* Popular badge */}
                 {p.id === 'medium' && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold px-4 py-1 rounded-full">
                     MOST POPULAR
@@ -202,7 +194,6 @@ export default function BuyCreditsPage() {
                         Report History
                       </li>
                       <li className="flex items-center text-sm text-slate-600 opacity-0">
-                        {/* Hidden spacer item to maintain consistent height */}
                         &nbsp;
                       </li>
                     </>
@@ -257,7 +248,6 @@ export default function BuyCreditsPage() {
                   )}
                 </ul>
 
-                {/* Select button: use framer-motion for hover/tap */}
                 <motion.button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setSelected(p); }}
@@ -272,13 +262,6 @@ export default function BuyCreditsPage() {
           })}
         </motion.div>
 
-        {/* Pay area (fade in) */}
-        {/*<motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'tween', ease: 'easeOut', duration: 0.8 }}
-          className="bg-white rounded-3xl shadow-lg border border-indigo-100 overflow-hidden"
-        >*/}
         <motion.div variants={fadeUp} className="bg-white rounded-3xl shadow-lg border border-indigo-100 overflow-hidden">
           <div className="md:flex">
             <div className="md:w-2/3 p-8">

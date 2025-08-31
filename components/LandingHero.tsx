@@ -26,7 +26,6 @@ const LandingHero = () => {
 
   const handleStartSession = () => 
     {
-        // Eventually need to implement a google auth check here
         router.push('/backgroundinfo');
     }
 
@@ -60,9 +59,6 @@ const LandingHero = () => {
             onClick={handleStartSession}>
               Start Practicing - It's Free
             </button>
-            {/*<button className="bg-white hover:bg-slate-100 text-indigo-900 border border-indigo-200 font-medium py-3 px-8 rounded-lg text-lg transition duration-300">
-              Watch Demo
-            </button>*/}
           </motion.div>
         </motion.div>
         

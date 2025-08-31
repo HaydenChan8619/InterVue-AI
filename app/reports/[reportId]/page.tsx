@@ -16,8 +16,6 @@ type QuestionResult = {
 
 export default function ReportDetailPage() {
   const router = useRouter();
-  // note: in app-router client components use useParams from 'next/navigation' differently;
-  // to keep this simple we'll parse the id from the URL
   const [isLoading, setIsLoading] = useState(true);
   const [report, setReport] = useState<any | null>(null);
   const [results, setResults] = useState<QuestionResult[]>([]);
@@ -89,7 +87,6 @@ export default function ReportDetailPage() {
           <p className="text-xl text-slate-700">Saved on {formatDate(report.created_at)}</p>
         </motion.div>
 
-        {/* Overall Grade */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'tween', ease: 'easeOut', duration: 0.8, delay: 0.1 }} className="mb-10">
           <div className="bg-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
             <div className="p-8 text-center">
@@ -103,7 +100,6 @@ export default function ReportDetailPage() {
           </div>
         </motion.div>
 
-        {/* Individual Question Results */}
         <div className="space-y-8 mb-10">
           {results.map((result, index) => (
             <motion.div key={index} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'tween', ease: 'easeOut', duration: 0.8, delay: 0.2 + (index * 0.1) }}>
@@ -154,7 +150,6 @@ export default function ReportDetailPage() {
           ))}
         </div>
 
-        {/* Actions */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'tween', ease: 'easeOut', duration: 0.8, delay: 0.5 }}>
           <div className="bg-white rounded-2xl shadow-lg border border-indigo-100 overflow-hidden">
             <div className="p-6 flex flex-col sm:flex-row gap-4 justify-center">

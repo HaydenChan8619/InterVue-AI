@@ -28,7 +28,6 @@ export default function LoginModal({
     setIsLoading(true);
     setError(null);
     try {
-      // NextAuth handles redirect & session automatically
       await signIn("google", { callbackUrl: redirectTo });
     } catch (err: any) {
       console.error("Login failed", err);
@@ -66,13 +65,6 @@ export default function LoginModal({
               Login to get started with InterVue AI
             </p>
           </div>
-          {/*<button
-            onClick={onClose}
-            aria-label="Close"
-            className="p-2 rounded-full hover:bg-slate-100 text-slate-600"
-          >
-            <X className="h-4 w-4" />
-          </button>*/}
         </div>
 
         <div className="mt-6">

@@ -51,7 +51,6 @@ export default function DashboardPage() {
       opacity: 1,
       y: 0,
       transition: {
-        // slightly increased stagger so items don't all start at once
         staggerChildren: 0.2,
         delayChildren: 0.05,
       },

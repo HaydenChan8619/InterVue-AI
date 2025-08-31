@@ -33,317 +33,6 @@ export default function ResultsPage() {
   const [aggregateReady, setAggregateReady] = useState(false);
   const [savedReady, setSavedReady] = useState(false);
 
- /* useEffect(() => {
-  const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
-  const ANALYSIS_DONE = 'analysis_done';
-  const ANALYSIS_RESULT = 'analysis_result';
-
-  let pollTimer: number | null = null;
-
-  const loadCachedResult = () => {
-    const raw = sessionStorage.getItem(ANALYSIS_RESULT);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  };
-
-  const waitForDone = (checkInterval = 300, timeout = 15000) =>
-    new Promise<{ results: QuestionResult[]; overallGrade: string } | null>((resolve) => {
-      const start = Date.now();
-      const tick = () => {
-        const done = sessionStorage.getItem(ANALYSIS_DONE);
-        if (done) {
-          const cached = loadCachedResult();
-          resolve(cached);
-          return;
-        }
-        if (Date.now() - start > timeout) {
-          resolve(null); // timed out waiting
-          return;
-        }
-        pollTimer = window.setTimeout(tick, checkInterval) as unknown as number;
-      };
-      tick();
-    });
-
-  const analyzeResponses = async () => {
-    try {
-      const questions = sessionStorage.getItem('questions');
-      const responses = sessionStorage.getItem('responses');
-      const jobDescription = sessionStorage.getItem('jobDescription');
-      const resume = sessionStorage.getItem('resume');
-
-      if (!questions || !responses || !jobDescription || !resume) {
-        router.push('/');
-        return;
-      }
-
-      // If we already have final result cached, use it and skip network
-      const cachedFinal = loadCachedResult();
-      if (cachedFinal) {
-        setResults(cachedFinal.results);
-        setOverallGrade(cachedFinal.overallGrade);
-        setIsLoading(false);
-        return;
-      }
-
-      // If another tab/mount has an analysis in progress, wait for it
-      const inProgress = sessionStorage.getItem(ANALYSIS_IN_PROGRESS);
-      if (inProgress) {
-        const waited = await waitForDone();
-        if (waited) {
-          setResults(waited.results);
-          setOverallGrade(waited.overallGrade);
-          setIsLoading(false);
-          return;
-        }
-        // if wait timed out, fall through and start a new analysis
-      }
-
-      // Start a new analysis run (create a runId)
-      const runId = crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random()}`;
-      sessionStorage.setItem(ANALYSIS_IN_PROGRESS, runId);
-
-      const response = await fetch('/api/analyze-responses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questions: JSON.parse(questions),
-          responses: JSON.parse(responses),
-          jobDescription,
-          resume,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to analyze responses');
-
-      const data = await response.json();
-
-      // Save to state
-      setResults(data.results);
-      setOverallGrade(data.overallGrade);
-
-      // Persist final analysis to sessionStorage so future mounts can reuse it
-      try {
-        const payload = { results: data.results, overallGrade: data.overallGrade };
-        sessionStorage.setItem(ANALYSIS_RESULT, JSON.stringify(payload));
-        sessionStorage.setItem(ANALYSIS_DONE, runId);
-      } catch (err) {
-        console.warn('Failed to write analysis cache to sessionStorage', err);
-      } finally {
-        sessionStorage.removeItem(ANALYSIS_IN_PROGRESS);
-      }
-
-      // Save report to DB (only once per run)
-      try {
-        // use the jobDescription & resume from sessionStorage (strings)
-        const jobDescriptionStr = jobDescription;
-        const resumeStr = resume;
-        // include the client run id so server can detect duplicates later if you want
-        const saveBody = {
-          userId,
-          reportGrade: data.overallGrade,
-          reportDetails: {
-            results: data.results,
-            jobDescription: jobDescriptionStr,
-            resume: resumeStr,
-            clientRunId: runId,
-            savedAt: new Date().toISOString(),
-          },
-        };
-
-        const saveRes = await fetch('/api/save-report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(saveBody),
-        });
-
-        if (!saveRes.ok) {
-          const errJson = await saveRes.json().catch(() => ({ error: 'save failed' }));
-          console.warn('Save report failed:', errJson);
-        } else {
-          // optional success handling
-          // const saved = await saveRes.json();
-          // console.log('Report saved', saved);
-        }
-      } catch (saveErr) {
-        console.warn('Save report error:', saveErr);
-      }
-    } catch (error) {
-      console.error('Error analyzing responses:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  analyzeResponses();
-
-  return () => {
-    if (pollTimer) {
-      clearTimeout(pollTimer);
-    }
-  };
-}, [router, userId]);*/
-
-// inside your component (replace your useEffect block with this)
-/*useEffect(() => {
-  const ANALYSIS_IN_PROGRESS = 'analysis_in_progress';
-  const ANALYSIS_DONE = 'analysis_done';
-  const ANALYSIS_RESULT = 'analysis_result';
-
-  let pollTimer: number | null = null;
-
-  const loadCachedResult = () => {
-    console.log('try to get cached results');
-    const raw = sessionStorage.getItem(ANALYSIS_RESULT);
-    if (!raw) return null;
-    try { console.log('found cached results');
-      return JSON.parse(raw); } catch { return null; }
-  };
-
-  const waitForDone = (checkInterval = 300, timeout = 15000) =>
-    new Promise<{ results: QuestionResult[]; overallGrade: string } | null>((resolve) => {
-      const start = Date.now();
-      const tick = () => {
-        const done = sessionStorage.getItem(ANALYSIS_DONE);
-        if (done) {
-          const cached = loadCachedResult();
-          resolve(cached);
-          return;
-        }
-        if (Date.now() - start > timeout) {
-          resolve(null);
-          return;
-        }
-        pollTimer = window.setTimeout(tick, checkInterval) as unknown as number;
-      };
-      tick();
-    });
-
-  // single function that ensures same-tab dedupe via a global promise
-  const analyzeOnce = async () => {
-    // if another code path in this window already created the promise, reuse it
-    const globalKey = '__analysisPromise';
-    /*if ((window as any)[globalKey]) {
-      return (window as any)[globalKey];
-    }
-
-    // Create a promise and attach to window so other mounts reuse it
-    const promise = (async () => {
-      try {
-        const questions = sessionStorage.getItem('questions');
-        const responses = sessionStorage.getItem('responses');
-        const jobDescription = sessionStorage.getItem('jobDescription');
-        const resume = sessionStorage.getItem('resume');
-
-        if (!questions || !responses || !jobDescription || !resume) {
-          // redirect or bail
-          router.push('/');
-          return null;
-        }
-
-        // cached final result?
-        const cachedFinal = loadCachedResult();
-        if (cachedFinal) {
-          return cachedFinal;
-        }
-
-        // If another TAB has an analysis in progress, wait for it (cross-tab)
-        const inProgress = sessionStorage.getItem(ANALYSIS_IN_PROGRESS);
-        if (inProgress) {
-          const waited = await waitForDone();
-          if (waited) return waited;
-          // else timed out -> we'll attempt a new analysis
-        }
-
-        // Start new run
-        const runId = crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random()}`;
-        sessionStorage.setItem(ANALYSIS_IN_PROGRESS, runId);
-
-        // IMPORTANT: include runId in POST so the server can be idempotent if you implement that.
-        const response = await fetch('/api/analyze-responses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            questions: JSON.parse(questions),
-            responses: JSON.parse(responses),
-            jobDescription,
-            resume,
-            clientRunId: runId, // pass runId for server-side dedupe/caching
-          }),
-        });
-
-        if (!response.ok) throw new Error('Failed to analyze responses');
-
-        const data = await response.json();
-
-        // persist to sessionStorage (so other mounts/tabs use it)
-        try {
-          const payload = { results: data.results, overallGrade: data.overallGrade };
-          sessionStorage.setItem(ANALYSIS_RESULT, JSON.stringify(payload));
-          sessionStorage.setItem(ANALYSIS_DONE, runId);
-        } catch (err) {
-          console.warn('Failed to write analysis cache to sessionStorage', err);
-        } finally {
-          sessionStorage.removeItem(ANALYSIS_IN_PROGRESS);
-        }
-
-        return { results: data.results, overallGrade: data.overallGrade };
-      } catch (err) {
-        // make sure errors propagate but also clean global state
-        throw err;
-      } finally {
-        // leave the promise in place while results are available to reuse;
-        // optionally delete it here to allow new runs later:
-        delete (window as any)[globalKey];
-      }
-    })();
-
-    (window as any)[globalKey] = promise;
-    return promise;
-  };
-
-  // run it and set state
-  (async () => {
-    try {
-      setIsLoading(true);
-
-      // First check cached result quickly
-      const cached = loadCachedResult();
-      if (cached) {
-        setResults(cached.results);
-        setOverallGrade(cached.overallGrade);
-        setIsLoading(false);
-        return;
-      }
-
-      // Attempt to reuse result across same-tab mounts and across tabs
-      const data = await analyzeOnce();
-
-      if (!data) {
-        // If analyzeOnce returned null (e.g. redirect), bail.
-        return;
-      }
-
-      setResults(data.results);
-      setOverallGrade(data.overallGrade);
-    } catch (error) {
-      console.error('Error analyzing responses:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  })();
-
-  return () => {
-    if (pollTimer) clearTimeout(pollTimer);
-  };
-  // NOTE: keep deps minimal so this runs only once per mount lifecycle.
-  // remove userId from deps to avoid re-running when session resolves.
-}, [router]);*/
-
   function safeRead<T = any>(key: string): T | null {
     try {
       const raw = sessionStorage.getItem(key);
@@ -360,33 +49,26 @@ async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
     while (Date.now() - start < timeoutMs) {
       const analyses = safeRead<Array<QuestionResult | null>>('analyses') ?? [];
       const questions = safeRead<string[]>('questions') ?? [];
-      // If length mismatch, don't block: exit and return whatever we have (server-side final analysis will handle gaps)
-      
-      //if (analyses.length >= questions.length && analyses.every((a) => a !== null)) {
+
       if (questions.length > 0 && analyses.length >= questions.length && analyses.every((a) => a !== null)) {
       setPerQuestionReady(true);
         return analyses as QuestionResult[];
       }
-      // If everything is present but some entries are null, keep polling for a short while
       await new Promise((r) => setTimeout(r, intervalMs));
     }
-    // timeout -> return whatever is available
     return (safeRead<Array<QuestionResult | null>>('analyses') ?? []).map((a) => a ?? null);
   }
 
   async function callAggregateAnalysis() {
   try {
-    // read base inputs from storage
     const questions = safeRead<string[]>('questions') ?? [];
     const responses = safeRead<string[]>('responses') ?? [];
 
-    // Wait for per-question analyses to finish (or timeout returning whatever we have)
     const analyses = (await waitForAnalyses()) ?? [];
     console.log('analyses length', analyses.length);
     console.log('are all refs identical?', analyses.length > 0 && analyses.every(a => a === analyses[0]));
     console.log('analyses snapshot', analyses.map(a => ({ q: a?.question, r: a?.response })));
 
-    // Normalize each analysis (fill gaps with sensible defaults)
     const normalized: QuestionResult[] = (questions.length > 0 ? questions : analyses.map((_, i) => `Question ${i + 1}`))
       .map((q, i) => {
         const a = analyses[i] as QuestionResult | null | undefined;
@@ -401,7 +83,6 @@ async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
           } as QuestionResult;
         }
 
-        // If this analysis is missing, produce a safe fallback item
         return {
           question: q,
           response: responses[i] ?? 'No response provided',
@@ -412,20 +93,16 @@ async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
         } as QuestionResult;
       });
 
-    // Save into state and mark per-question ready
     setResults(normalized);
     setPerQuestionReady(true);
 
-    // Compute overall grade from per-question grades
     const overall = computeOverallFromResults(normalized);
     setOverallGrade(overall);
 
-    // Mark aggregate ready (we've compiled the report locally)
     setAggregateReady(true);
   } catch (e) {
     console.error('Error compiling per-question analyses:', e);
 
-    // Fallback: populate minimal results so UI still shows something
     const questions = safeRead<string[]>('questions') ?? [];
     const responses = safeRead<string[]>('responses') ?? [];
     const minimal = (questions || []).map((q, i) => ({
@@ -451,7 +128,6 @@ async function waitForAnalyses(timeoutMs = 60000, intervalMs = 400) {
     return fallbackOverallGrade(grades);
   }
 
-  // convert letter grades to a final letter (simple average -> letter)
   function fallbackOverallGrade(grades: string[]) {
     if (!grades || grades.length === 0) return 'C';
     const map = (g: string): number => {
@@ -483,7 +159,6 @@ useEffect(() => {
     if (analysisRef.current) return;
     analysisRef.current = true;
 
-    // If there's already a finalized analysis stored in sessionStorage under 'finalReport', prefer it
     const finalReport = safeRead<{ overallGrade: string; results: QuestionResult[] }>('finalReport');
     if (finalReport && Array.isArray(finalReport.results) && finalReport.results.length > 0) {
       setResults(finalReport.results);
@@ -495,9 +170,7 @@ useEffect(() => {
       return;
     }
 
-    // Kick off the aggregate analysis call
     callAggregateAnalysis();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -507,7 +180,7 @@ useEffect(() => {
 
   (async () => {
     try {
-      const runId = sessionStorage.getItem('analysis_run_id') ?? undefined; // optional
+      const runId = sessionStorage.getItem('analysis_run_id') ?? undefined;
       const saveBody = {
         userId,
         reportGrade: overallGrade,
@@ -554,17 +227,6 @@ useEffect(() => {
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
-
-  /*if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Analyzing your interview performance...</p>
-        </div>
-      </div>
-    );
-  }*/
 
     const StepCard: React.FC<{ title: string; ready: boolean; description?: string; delay?: number }> = ({ title, ready, description, delay = 0 }) => {
       return (
@@ -630,7 +292,6 @@ useEffect(() => {
           <p className="text-xl text-slate-700">Here's how you performed in your practice interview</p>
         </motion.div>
 
-        {/* Overall Grade */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -654,7 +315,6 @@ useEffect(() => {
           </div>
         </motion.div>
 
-        {/* Individual Question Results */}
         <div className="space-y-8 mb-10">
           {results.map((result, index) => (
             <motion.div
@@ -747,7 +407,6 @@ useEffect(() => {
           ))}
         </div>
 
-        {/* Actions */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

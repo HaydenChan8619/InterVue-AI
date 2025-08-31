@@ -1,25 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function getOutputTextFromResponse(data: any): string | undefined {
-  // Common: Responses API new style
   if (typeof data.output_text === 'string') return data.output_text;
 
-  // Another common shape: output: [{ content: [{ type: 'output_text', text: '...' }, ...] }, ...]
   if (Array.isArray(data.output)) {
     for (const outItem of data.output) {
       if (Array.isArray(outItem.content)) {
         for (const c of outItem.content) {
           if (typeof c.text === 'string') return c.text;
-          // sometimes content objects use "type" + "text"
           if (c.type === 'output_text' && typeof c.text === 'string') return c.text;
         }
       }
-      // fallback: older shape where outItem.text exists
       if (typeof outItem.text === 'string') return outItem.text;
     }
   }
 
-  // Older Responses API or other variants
   if (Array.isArray(data.results) && typeof data.results[0]?.text === 'string') {
     return data.results[0].text;
   }
@@ -30,23 +25,19 @@ function getOutputTextFromResponse(data: any): string | undefined {
 
 function tryExtractJsonFromString(s: string): any | null {
   if (!s || typeof s !== 'string') return null;
-  // Quick check: if the whole string is valid JSON, parse directly
-  try { return JSON.parse(s); } catch (e) { /* ignore */ }
+  try { return JSON.parse(s); } catch (e) {  }
 
-  // If the response contains JSON inside surrounding text or markdown fences,
-  // try to extract the largest JSON-looking block.
   const jsonRegex = /({[\s\S]*})/;
   const match = s.match(jsonRegex);
   if (match) {
     const candidate = match[1];
-    try { return JSON.parse(candidate); } catch (e) { /* ignore */ }
+    try { return JSON.parse(candidate); } catch (e) {  }
   }
 
-  // Try looking for code block with ```json ... ```
   const fencedJson = /```json\s*([\s\S]*?)```/i;
   const fmatch = s.match(fencedJson);
   if (fmatch) {
-    try { return JSON.parse(fmatch[1]); } catch (e) { /* ignore */ }
+    try { return JSON.parse(fmatch[1]); } catch (e) {  }
   }
 
   return null;
@@ -56,7 +47,6 @@ export async function POST(request: NextRequest) {
   try {
     const { questions, responses, jobDescription, resume } = await request.json();
 
-    // Slight prompt tweak: ask explicitly for JSON-only output (this reduces downstream parsing problems)
     const analysisPrompt = `
 You are an expert interview coach and hiring manager. Analyze the following interview responses and provide detailed feedback.
 
@@ -120,16 +110,13 @@ IMPORTANT: Return ONLY valid JSON, with no additional text, commentary, or markd
       );
     }
 
-    // Try to get the actual text content
     const outputText = getOutputTextFromResponse(data);
 
     let analysisResult;
     if (outputText) {
-      // Best-effort: parse directly, else try to extract JSON from surrounding text
       try {
         analysisResult = JSON.parse(outputText);
       } catch (parseError) {
-        // Try to extract an embedded JSON block inside the text
         const extracted = tryExtractJsonFromString(outputText);
         if (extracted) {
           analysisResult = extracted;
@@ -139,13 +126,11 @@ IMPORTANT: Return ONLY valid JSON, with no additional text, commentary, or markd
         }
       }
     } else {
-      // If we couldn't find a text field, log full response for debugging
       console.warn('No output text found in OpenAI response. Full response logged for debugging.');
       console.warn(JSON.stringify(data, null, 2));
     }
 
     if (!analysisResult) {
-      // Fallback (your original fallback behavior)
       analysisResult = {
         overallGrade: 'F',
         results: questions.map((question: string, index: number) => ({

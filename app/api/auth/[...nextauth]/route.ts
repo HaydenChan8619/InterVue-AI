@@ -6,7 +6,7 @@ import type { NextAuthOptions } from "next-auth";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // <-- server-only
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 const authOptions: NextAuthOptions = {
@@ -22,7 +22,6 @@ const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    // Runs on every sign-in attempt. Upserts user row keyed by email.
     async signIn({ user, account }) {
       try {
         if (!user?.email) {
@@ -41,7 +40,6 @@ const authOptions: NextAuthOptions = {
           last_active: new Date().toISOString(),
         };
 
-        // Upsert on email (email has UNIQUE constraint)
         const { data, error } = await supabaseAdmin
           .from("users")
           .upsert(payload, { onConflict: "email" })
@@ -49,8 +47,6 @@ const authOptions: NextAuthOptions = {
           .single();
 
         if (error) {
-          // Log the error. You can choose to return false to block sign-in,
-          // but here we allow auth to succeed (so provider auth flow isn't blocked)
           console.error("Supabase upsert error in signIn:", error);
         }
 
@@ -61,7 +57,6 @@ const authOptions: NextAuthOptions = {
       }
     },
 
-    // Add your app's user_id to session.user so frontend can use it
     async session({ session }) {
       try {
         if (!session?.user) return session;
@@ -93,5 +88,4 @@ const authOptions: NextAuthOptions = {
 
 const handler = NextAuth(authOptions);
 
-/* IMPORTANT: export named bindings for the HTTP methods — Next.js app router expects these */
 export { handler as GET, handler as POST };

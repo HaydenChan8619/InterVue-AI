@@ -30,24 +30,21 @@ export default function BackgroundInfoClient() {
   const [popupMessage, setPopupMessage] = useState('');
   const [savedFileName, setSavedFileName] = useState('');
   
-  // inside your component, above the effects:
   const didFetchRef = useRef(false);  
   const didHandleStripeRef = useRef(false);
 
-  /* 1) keep the modal open logic reactive (runs whenever status/session change) */
   useEffect(() => {
     if (status !== 'loading') {
       setOpen(!session);
     }
   }, [status, session]);
 
-  /* 2) fetch user data only once when we first observe an authenticated session */
   useEffect(() => {
-    if (didFetchRef.current) return;              // already fetched once — skip
-    if (status !== 'authenticated') return;       // wait until session is authenticated
-    if (!session?.user?.user_id) return;          // need a user id
+    if (didFetchRef.current) return;              
+    if (status !== 'authenticated') return;      
+    if (!session?.user?.user_id) return;          
 
-    didFetchRef.current = true; // mark so we don't fetch again
+    didFetchRef.current = true; 
 
     const fetchUserData = async () => {
       try {
@@ -73,7 +70,7 @@ export default function BackgroundInfoClient() {
     };
 
     fetchUserData();
-  }, [status, session?.user?.user_id]); // the guard ensures run only once
+  }, [status, session?.user?.user_id]);
 
   
   useEffect(() => {
@@ -114,7 +111,7 @@ export default function BackgroundInfoClient() {
       setPopupOpen(true);
       router.replace('/backgroundinfo', { scroll: false });
     }
-  }, []); // run once on mount
+  }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,9 +152,7 @@ export default function BackgroundInfoClient() {
   const startGoogle = async () => {
   try {
     setIsLoading(true);
-    // redirect back to this page after sign in
     await signIn('google', { callbackUrl: `${window.location.origin}/backgroundinfo` });
-    // signIn usually redirects, so the next line might not run — but keep it for safety
     setIsLoading(false);
   } catch (err) {
     console.error('Sign in failed', err);
@@ -179,7 +174,6 @@ export default function BackgroundInfoClient() {
   sessionStorage.removeItem('questions');
   sessionStorage.removeItem('questionsAudio');
 
-  // Immediately navigate to waiting room (fast UX)
   router.push('/waiting-room');
 };
 
@@ -196,8 +190,6 @@ export default function BackgroundInfoClient() {
         onClose={() => setPopupOpen(false)}
         actionLabel={popupType === 'success' ? 'Continue' : undefined}
         onAction={() => {
-          // example action: navigate somewhere
-          // router.push('/dashboard');
         }}
       />
       <div className="max-w-4xl mx-auto pt-16 pb-12">
@@ -336,7 +328,6 @@ export default function BackgroundInfoClient() {
             </div>
           </motion.div>
 
-          {/* Job Description Card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -428,7 +419,6 @@ export default function BackgroundInfoClient() {
                 </p>
                 <p className='text-slate-600 mb-6 max-w-2xl mx-auto'>Each question will be recorded using your microphone.</p>
 
-                {/* If user is NOT signed in, show the Google sign-in button */}
                 {!session ? (
                 <div className="mt-6 flex justify-center">
                     <button
@@ -445,7 +435,6 @@ export default function BackgroundInfoClient() {
                     </button>
                 </div>
                 ) : (
-                /* User IS signed in — show the original Start Interview button */
                 <motion.button
                     whileHover={{ scale: 1.03 }}
                     whileTap={{ scale: 0.98 }}

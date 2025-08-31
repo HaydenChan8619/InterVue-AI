@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import textToSpeech from '@google-cloud/text-to-speech';
 
-// Initialize the client
 const client = new textToSpeech.TextToSpeechClient({
     credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL!,
@@ -24,7 +23,6 @@ export async function POST(req: Request) {
       audioConfig: { audioEncoding: 'MP3' },
     });
 
-    // Convert audioContent (Uint8Array) to base64
     const audioBase64 = Buffer.from(response.audioContent as Uint8Array).toString('base64');
 
     return NextResponse.json({

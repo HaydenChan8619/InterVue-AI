@@ -10,8 +10,7 @@ type Props = {
   title?: string;
   message?: string;
   onClose: () => void;
-  autoCloseMs?: number | null; // set to null to disable auto-close
-  // optional action button (text + callback)
+  autoCloseMs?: number | null;
   actionLabel?: string;
   onAction?: () => void;
   onBack?: () => void;
@@ -31,18 +30,14 @@ export default function CreditPopup({
   const [localOpen, setLocalOpen] = useState(open);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
-  // sync open prop -> localOpen to allow animate exit
   useEffect(() => setLocalOpen(open), [open]);
 
-  // auto-close timer
   useEffect(() => {
     if (!localOpen || !autoCloseMs) return;
     const t = setTimeout(() => handleClose(), autoCloseMs);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localOpen, autoCloseMs]);
 
-  // ESC key closes
   useEffect(() => {
     if (!localOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -50,17 +45,14 @@ export default function CreditPopup({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localOpen]);
 
-  // focus the dialog when it opens
   useEffect(() => {
     if (localOpen) dialogRef.current?.focus();
   }, [localOpen]);
 
   const handleClose = () => {
     setLocalOpen(false);
-    // let animation run then call parent's onClose after short delay to keep UX snappy
     setTimeout(() => onClose?.(), 220);
     onBack? onBack() : null;
   };
@@ -77,7 +69,6 @@ export default function CreditPopup({
     <AnimatePresence>
       {localOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pt-20">
-          {/* overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.45 }}
@@ -85,7 +76,6 @@ export default function CreditPopup({
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
           />
 
-          {/* toast/modal card */}
           <motion.div
             ref={dialogRef}
             tabIndex={-1}

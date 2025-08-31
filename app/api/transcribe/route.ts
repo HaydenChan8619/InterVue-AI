@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await res.json();
-    // Fireworks returns the transcription text as `text` in the JSON response
     console.log("Transcribed text:", data?.text ?? "<no text returned>");
     return NextResponse.json({ text: data.text });
   } catch (err) {

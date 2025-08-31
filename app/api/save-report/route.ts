@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // server-only
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: Request) {
@@ -12,13 +12,12 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const { userId = null, reportGrade = null, reportDetails = null } = body;
 
-    // Basic validation
     if (!reportDetails) {
       return NextResponse.json({ error: 'reportDetails is required' }, { status: 400 });
     }
 
     const payload = {
-      user_id: userId, // can be null if not signed in
+      user_id: userId,
       report_grade: reportGrade,
       report_details: reportDetails,
     };

@@ -18,7 +18,6 @@ const NavBar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // close dropdown when clicking outside
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       if (!dropdownRef.current) return;
@@ -43,7 +42,6 @@ const NavBar = () => {
   const goToDashboard = () => router.push('/dashboard');
   const goToBuy = () => {
     if (!session) {
-      // If not signed in, send them to signIn and then to buy flow
       handleLogin();
       return;
     }
@@ -60,7 +58,6 @@ const NavBar = () => {
       style={{ zIndex: 2147483647, top: 0 }}
     >
       <div className="container mx-auto px-6 md:px-16 flex items-center justify-between">
-        {/* Left: logo + title */}
         <div
           className="flex items-center space-x-3 cursor-pointer select-none"
           onClick={handleGetHome}
@@ -72,41 +69,13 @@ const NavBar = () => {
           <span className="text-xl font-bold text-indigo-600">InterVue AI</span>
         </div>
 
-        {/* Middle: optional nav links (hidden on small screens) */}
         {/*<div className="hidden md:flex space-x-8">
           <a href="#process" className="text-indigo-900 hover:text-indigo-600 font-medium transition-transform duration-200 hover:scale-105">How It Works</a>
           <a href="#testimonials" className="text-indigo-900 hover:text-indigo-600 font-medium transition-transform duration-200 hover:scale-105">Testimonials</a>
           <a href="#pricing" className="text-indigo-900 hover:text-indigo-600 font-medium transition-transform duration-200 hover:scale-105">Pricing</a>
         </div>*/}
 
-        {/* Right: actions (Buy button + profile/sign-in) */}
         <div className="flex items-center space-x-3">
-          {/* Buy Credits button - prominent but compact */}
-          {/*<button
-            onClick={goToBuy}
-            className="hidden sm:inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105"
-            aria-label="Buy credits"
-            title="Buy credits"
-          >
-            Buy Credits
-          </button> */}
-
-          {/* Compact Buy (mobile) */}
-          {/*<button
-            onClick={goToBuy}
-            className="inline-flex sm:hidden items-center justify-center w-10 h-10 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white transition duration-200"
-            aria-label="Buy"
-            title="Buy"
-          >
-            {/* simple cart icon (svg) */}
-            {/*<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M6 6h15l-1.5 9h-12z" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="9" cy="20" r="1" />
-              <circle cx="19" cy="20" r="1" />
-            </svg>
-          </button>*/}
-
-          {/* If signed in: avatar + compact dropdown */}
           {session?.user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -122,14 +91,12 @@ const NavBar = () => {
                     {session.user.name ? session.user.name.charAt(0) : 'U'}
                   </div>
                 )}
-                {/* show name on md+ only to save space */}
                 <span className="hidden md:inline-block">{session.user.name}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {/* Dropdown */}
               {menuOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg py-2 z-50">
                   <div className="px-4 py-2 border-b border-gray-100">
@@ -161,7 +128,6 @@ const NavBar = () => {
               )}
             </div>
           ) : (
-            // Not signed in: show Sign In button
             <button
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200 transform hover:scale-105"
               onClick={handleLogin}
@@ -172,7 +138,6 @@ const NavBar = () => {
         </div>
       </div>
 
-        {/* Global fixes: lower PayPal overlays so header stays on top */}
     <style jsx global>{`
       /* make sure header is above most overlays */
       nav[role="navigation"] {
