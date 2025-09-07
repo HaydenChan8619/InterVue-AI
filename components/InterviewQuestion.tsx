@@ -26,6 +26,8 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
   const timerRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null); 
   const mountedRef = useRef<boolean>(true);
+  const MAX_RECORD_SECONDS = 300;
+  const startTimeRef = useRef<number | null>(null);
 
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
@@ -161,6 +163,7 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
 
   const startRecording = async () => {
     if (isRecording) return;
+    if (timerRef.current !== null) return;
 
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
@@ -192,10 +195,15 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
+      startTimeRef.current = Date.now();
 
       timerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
+        if (startTimeRef.current == null) return;
+        const seconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        setRecordingTime(seconds);
+        if (seconds >= MAX_RECORD_SECONDS) stopRecording();
+      }, 250); // update rate can be 250ms for snappier UI
+
 
     } catch (error) {
       console.error('Error accessing microphone:', error);
@@ -216,6 +224,7 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
       timerRef.current = null;
     }
 
+    startTimeRef.current = null;
     setIsRecording(false);
 
     if (streamRef.current) {
@@ -267,6 +276,18 @@ export default function InterviewQuestion({ question, questionNumber, onComplete
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+    const remaining = Math.max(0, MAX_RECORD_SECONDS - recordingTime);
+
+    const yellowThreshold = MAX_RECORD_SECONDS >= 60 ? 60 : Math.max(1, Math.ceil(MAX_RECORD_SECONDS * 0.3));
+    const redThreshold = MAX_RECORD_SECONDS >= 15 ? 15 : Math.max(1, Math.ceil(MAX_RECORD_SECONDS * 0.15));
+
+    let timerColorClass = "text-indigo-600 font-medium"; // default (black-ish)
+    if (remaining <= redThreshold) timerColorClass = "text-red-600 font-semibold";
+    else if (remaining <= yellowThreshold) timerColorClass = "text-yellow-600 font-semibold";
+
+    // accessibility friendly formatted time
+    const formattedRecordingTime = formatTime(recordingTime);
+
 return (
     
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.7 }}>
@@ -289,7 +310,7 @@ return (
                   <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
                   <div className="absolute inset-0 w-4 h-4 bg-red-500 rounded-full animate-ping"></div>
                 </div>
-                <span className="text-red-600 font-semibold">RECORDING</span>
+                <span className={`${timerColorClass} tracking-wider`}>RECORDING — {formattedRecordingTime}</span>
               </motion.div>
             )}
 

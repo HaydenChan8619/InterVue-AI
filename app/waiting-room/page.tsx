@@ -434,7 +434,7 @@ const ProcessSection: React.FC = () => {
           <ProcessStep 
             number={2}
             title="Answer"
-            description="Answer the question to the best of your abilities."
+            description={`Answer the question to the best of your abilities.\n(5 min/question limit)`}
             icon={<Mic className="h-8 w-8" aria-hidden />}
           />
           
@@ -475,7 +475,12 @@ const ProcessStep: React.FC<ProcessStepProps> = ({ number, title, description, i
         </div>
         <div className="text-indigo-600 mb-3">{icon}</div>
         <h3 className="text-lg font-semibold text-indigo-900 mb-1">{title}</h3>
-        <p className="text-sm text-slate-600">{description}</p>
+        <p className="text-sm text-slate-600">  {description.split('\n').map((line, idx) => (
+          <span key={idx}>
+            {line}
+            <br />
+          </span>
+        ))}</p>
       </div>
     </div>
   );
