@@ -46,7 +46,7 @@ const LandingCallToAction = () => {
             duration: 0.5,
           }}
         >
-          Join thousands of job seekers who have transformed their interview skills with InterVue AI.
+          Join the job seekers who have<br />transformed their interview skills with InterVue AI.
         </motion.p>
         <motion.button 
         className="bg-white text-indigo-900 hover:bg-indigo-100 font-bold py-4 px-10 rounded-full text-lg shadow-lg"
